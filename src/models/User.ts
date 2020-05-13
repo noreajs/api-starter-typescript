@@ -2,7 +2,6 @@ import mongoose, { Schema } from "mongoose";
 import mongoosePaginate from "mongoose-paginate";
 import IUser from "../interfaces/IUser";
 import validator from "validator";
-import * as crypto from "crypto";
 import { encrypt, verify } from "unixcrypt"
 
 const model = (schema: mongoose.Schema) => {
@@ -43,7 +42,7 @@ const User = new mongoose.Schema({
     },
     password: {
         type: Schema.Types.String,
-        required: [true, 'The secret code is required.']
+        required: [true, 'The secret code is required.'],
     },
     admin: {
         type: Schema.Types.Boolean,
@@ -81,6 +80,8 @@ const User = new mongoose.Schema({
     lockedAt: {
         type: Date
     }
+}, {
+    
 })
 
 User.methods = {
