@@ -1,13 +1,12 @@
-import { Document, Schema } from "mongoose";
 import { IOauthClient } from "./OauthClient";
-import mongooseModel from "../../../core/mongoose/MongooseModel";
+import { mongooseModel, Document, Schema } from "@noreajs/mongoose";
 
 export interface IOauthAccessToken extends Document {
   userId: any;
   client: IOauthClient;
   name: string;
-  scopes: string;
-  revoked: boolean;
+  scope: string;
+  revokedAt?: Date;
   expiresAt?: Date;
 }
 
@@ -19,7 +18,6 @@ export default mongooseModel<IOauthAccessToken>({
     {
       userId: {
         type: Schema.Types.String,
-        autopopulate: true,
       },
       client: {
         type: Schema.Types.ObjectId,
@@ -29,12 +27,11 @@ export default mongooseModel<IOauthAccessToken>({
       name: {
         type: Schema.Types.String,
       },
-      scopes: {
+      scope: {
         type: Schema.Types.String,
       },
-      revoked: {
-        type: Schema.Types.Boolean,
-        required: [true, "Revoke state is required."],
+      revokedAt: {
+        type: Schema.Types.Date
       },
       expiresAt: {
         type: Schema.Types.Date,

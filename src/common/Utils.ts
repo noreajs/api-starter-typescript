@@ -11,7 +11,7 @@ export const isFilled = (value: any) => {
  * @param value input
  */
 export const isQueryParamFilled = (value: any) => {
-    return value !== null && value !== undefined && `${value}`.length != 0
+    return value !== null && value !== undefined && `${value}`.length !== 0
 };
 
 /**

@@ -1,12 +1,11 @@
-import { Document, Schema } from "mongoose";
 import { IOauthClient } from "./OauthClient";
-import mongooseModel from "../../../core/mongoose/MongooseModel";
+import { mongooseModel, Document, Schema } from "@noreajs/mongoose";
 
 export interface IOauthAuthCode extends Document {
-  userId: any;
+  authorizationCode: string;
   client: IOauthClient;
-  scopes: string;
-  revoked: boolean;
+  scope: string;
+  revokedAt: Date;
   expiresAt: Date;
 }
 
@@ -14,21 +13,23 @@ export default mongooseModel<IOauthAuthCode>({
   name: "OauthAuthCode",
   collection: "oauth_auth_codes",
   schema: new Schema({
-    userId: {
+    authorizationCode: {
       type: Schema.Types.String,
-      required: [true, "The user id is required."]
+      required: [true, "Authorization code is required."],
     },
     client: {
       type: Schema.Types.ObjectId,
       ref: "OauthClient",
       required: [true, "The oauth client is required."],
     },
-    scopes: {
+    scope: {
       type: Schema.Types.String,
     },
-    revoked: {
-      type: Schema.Types.Boolean,
-      required: [true, 'Revoke state is required.']
+    code_challenge: {
+      type: Schema.Types.String,
+    },
+    revokedAt: {
+      type: Schema.Types.Date,
     },
     expiresAt: {
       type: Schema.Types.Date,

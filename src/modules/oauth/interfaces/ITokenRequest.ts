@@ -9,3 +9,15 @@ export default interface ITokenRequest {
   username: string;
   password: string;
 }
+
+export const TokenRequestAttributes = {
+  GRANT_TYPE: 'grant_type',
+  REFRESH_TOKEN: 'refresh_token',
+  CLIENT_ID: 'client_id',
+  CLIENT_SECRET: 'client_secret',
+  REDIRECT_URI: 'redirect_uri',
+  CODE: 'code',
+  CODE_VERIFIER: 'code_verifier',
+  USERNAME: 'username',
+  PASSWORD: 'password'
+}

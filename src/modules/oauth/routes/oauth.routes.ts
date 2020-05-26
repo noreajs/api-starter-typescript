@@ -49,6 +49,11 @@ export default (app: Application) => {
        * Purge revoked and expired token
        */
       g.route("/token/purge").post([oauthController.purge]);
+
+      /**
+       * Get token
+       */
+      g.route("/callback").get([oauthController.callback]);
     })
   );
 };

@@ -2,10 +2,17 @@ import { Request, Response } from "express";
 import OauthClient, { IOauthClient } from "../models/OauthClient";
 import HttpStatus from "../../../common/HttpStatus";
 import crypto from "crypto";
+import { v4 as uuidV4 } from "uuid";
 import { serializeError } from "serialize-error";
-import { linearizeErrors } from "../../../core/mongoose/MongooseUtilities";
+import { linearizeErrors } from "@noreajs/mongoose";
+import OauthDefaults, { IOauthDefaults } from "../OauthDefaults";
 
 class OauthClientController {
+  oauthParams: IOauthDefaults;
+
+  constructor() {
+    this.oauthParams = OauthDefaults;
+  }
   /**
    * Get all clients
    * @param req request
@@ -28,21 +35,30 @@ class OauthClientController {
    * @param req request
    * @param res response
    */
-  async create(req: Request, res: Response) {
+  create = async (req: Request, res: Response) => {
     try {
-      // secret
-      const secretHash = crypto.createHash("sha256");
-      // update code
-      secretHash.update(crypto.randomBytes(50).toString("hex"), "utf8");
+      // client id
+      const clientId = uuidV4();
       // create a new oauth client
       const client = new OauthClient({
+        clientId: clientId,
         name: req.body.name,
-        secret: secretHash.digest("hex"),
-        provider: "noreajs",
-        redirect: req.body.redirect,
+        website: req.body.website,
+        logo: req.body.logo,
+        programmingLanguage: req.body.programmingLanguage,
+        scope: req.body.scope,
+        legalTermsAcceptedAt: req.body.legalTermsAcceptedAt,
+        clientProfile: req.body.clientProfile,
+        secretKey: crypto
+          .createHmac(
+            this.oauthParams.OAUTH_HMAC_ALGORITHM,
+            this.oauthParams.OAUTH_SECRET_KEY
+          )
+          .update(clientId)
+          .digest("hex"),
+        redirectURIs: req.body.redirectURIs,
         personalAccessClient: req.body.personalAccessClient,
         passwordClient: req.body.passwordClient,
-        revoked: false,
       } as Partial<IOauthClient>);
 
       // save change
@@ -53,7 +69,7 @@ class OauthClientController {
       linearizeErrors(e);
       return res.status(HttpStatus.InternalServerError).json(serializeError(e));
     }
-  }
+  };
 
   /**
    * Edit a client
@@ -68,8 +84,16 @@ class OauthClientController {
       if (client) {
         // apply changes
         client.set({
-          name: req.body.name,
-          redirect: req.body.redirect || client.redirect,
+          name: req.body.name || client.name,
+          website: req.body.website || client.website,
+          logo: req.body.logo || client.logo,
+          programmingLanguage:
+            req.body.programmingLanguage || client.programmingLanguage,
+          scope: req.body.scope,
+          legalTermsAcceptedAt:
+            req.body.legalTermsAcceptedAt || client.legalTermsAcceptedAt,
+          clientProfile: req.body.clientProfile || client.clientProfile,
+          redirectURIs: req.body.redirectURIs || client.redirectURIs,
           personalAccessClient:
             req.body.personalAccessClient != undefined
               ? req.body.personalAccessClient
@@ -80,11 +104,12 @@ class OauthClientController {
               : client.passwordClient,
         } as Partial<IOauthClient>);
         // change approval state
-        if (req.body.approved !== undefined) {
+        if (req.body.revoked !== undefined) {
           client.set({
-            approvedAt: req.body.approved ? new Date() : undefined,
+            revokedAt: req.body.revoked ? new Date() : undefined,
           });
         }
+
         // save changes
         await client.save();
 
