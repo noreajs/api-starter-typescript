@@ -14,6 +14,7 @@ import HttpStatus from "../../../common/HttpStatus";
 import { Request, Response } from "express";
 import ITokenError from "../interfaces/ITokenError";
 import { isQueryParamFilled } from "../../../common/Utils";
+import IAccessTokenPayload from "../interfaces/IAccessTokenPayload";
 
 class TokenGrantPasswordCredentialsHelper {
   /**
@@ -79,24 +80,15 @@ class TokenGrantPasswordCredentialsHelper {
         };
       }
 
-      // expires at
-      const expiresAt = moment()
+      // access token expires at
+      const accessTokenExpiresAt = moment()
         .add(oauthParams.OAUTH_ACCESS_TOKEN_EXPIRE_IN, "seconds")
         .toDate();
-      // Create token
-      const token = jwt.sign(
-        {
-          userId: passwordGrantData.userId,
-          client: client._id.toString(),
-          scope: data.scope,
-        },
-        oauthParams.OAUTH_SECRET_KEY,
-        {
-          algorithm: oauthParams.OAUTH_JWT_ALGORITHM,
-          expiresIn: oauthParams.OAUTH_ACCESS_TOKEN_EXPIRE_IN,
-          issuer: oauthParams.OAUTH_ISSUER, // must be provided
-        }
-      );
+
+      // refresh token expires at
+      const refreshTokenExpiresAt = moment()
+        .add(oauthParams.OAUTH_REFRESH_TOKEN_EXPIRE_IN, "seconds")
+        .toDate();
 
       /**
        * Save access token data
@@ -105,8 +97,8 @@ class TokenGrantPasswordCredentialsHelper {
         userId: passwordGrantData.userId,
         client: client._id,
         name: client.name,
-        scope: data.scope,
-        expiresAt: expiresAt,
+        scope: passwordGrantData.scope,
+        expiresAt: accessTokenExpiresAt,
       } as Partial<IOauthAccessToken>);
 
       await oauthAccessToken.save();
@@ -126,8 +118,8 @@ class TokenGrantPasswordCredentialsHelper {
        * Save refresh token data
        */
       const oauthRefreshToken = new OauthRefreshToken({
-        accessToken: refreshToken,
-        expiresAt: expiresAt,
+        token: refreshToken,
+        expiresAt: refreshTokenExpiresAt,
       } as Partial<IOauthRefreshToken>);
 
       // save refresh token
@@ -136,6 +128,7 @@ class TokenGrantPasswordCredentialsHelper {
       // revoke previous access token
       await OauthAccessToken.updateMany(
         {
+          _id: { $ne: oauthAccessToken._id },
           userId: passwordGrantData.userId,
         },
         {
@@ -143,9 +136,28 @@ class TokenGrantPasswordCredentialsHelper {
         }
       );
 
+      /**
+       * Create JWT token
+       * **************************************
+       */
+      const token = jwt.sign(
+        {
+          tokenId: oauthAccessToken._id.toString(),
+          userId: passwordGrantData.userId,
+          client: client._id.toString(),
+          scope: passwordGrantData.scope,
+        } as IAccessTokenPayload,
+        oauthParams.OAUTH_SECRET_KEY,
+        {
+          algorithm: oauthParams.OAUTH_JWT_ALGORITHM,
+          expiresIn: oauthParams.OAUTH_ACCESS_TOKEN_EXPIRE_IN,
+          issuer: oauthParams.OAUTH_ISSUER, // must be provided
+        }
+      );
+
       return res.status(HttpStatus.Ok).json({
         access_token: token,
-        token_type: "Bearer",
+        token_type: oauthParams.OAUTH_TOKEN_TYPE,
         expires_in: oauthParams.OAUTH_ACCESS_TOKEN_EXPIRE_IN,
         refresh_token: refreshToken,
         data: passwordGrantData.extraData,

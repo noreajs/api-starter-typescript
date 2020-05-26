@@ -17,6 +17,7 @@ import ITokenRequest from "../interfaces/ITokenRequest";
 import ICodeChallengeMethodType from "../interfaces/ICodeChallengeMethodType";
 import { toASCII } from "punycode";
 import ITokenError from "../interfaces/ITokenError";
+import IAccessTokenPayload from "../interfaces/IAccessTokenPayload";
 
 class TokenGrantAuthorizationCodeHelper {
   /**
@@ -36,14 +37,19 @@ class TokenGrantAuthorizationCodeHelper {
     oauthParams: IOauthDefaults
   ) {
     try {
-      // auth code
-      const authorizationCode = await OauthAuthCode.findOne({
+      /**
+       * AUTHORIZATION CODE VALIDATION
+       * *********************************
+       */
+
+      // load authoriation token
+      const oauthCode = await OauthAuthCode.findOne({
         client: client._id,
         authorizationCode: data.code,
       });
 
-      if (authorizationCode) {
-        if (moment().isAfter(authorizationCode.expiresAt)) {
+      if (oauthCode) {
+        if (moment().isAfter(oauthCode.expiresAt)) {
           throw {
             status: HttpStatus.BadRequest,
             data: {
@@ -52,7 +58,7 @@ class TokenGrantAuthorizationCodeHelper {
                 "The authorization code has been expired. Try to get another one.",
             } as ITokenError,
           };
-        } else if (authorizationCode.revokedAt) {
+        } else if (oauthCode.revokedAt) {
           throw {
             status: HttpStatus.BadRequest,
             data: {
@@ -64,24 +70,20 @@ class TokenGrantAuthorizationCodeHelper {
         } else {
           /**
            * Verify authorization code
+           * *****************************
            */
-          const authorizationCodeData = jwt.verify(
-            authorizationCode.authorizationCode,
-            oauthParams.OAUTH_SECRET_KEY,
-            {
-              algorithms: [oauthParams.OAUTH_JWT_ALGORITHM],
-            }
-          ) as {
-            client_id: string;
-            redirect_uri: string;
-            code_challenge?: string;
-            code_challenge_method?: ICodeChallengeMethodType;
-          };
+          const hashedCode = crypto
+            .createHmac(
+              oauthParams.OAUTH_HMAC_ALGORITHM,
+              oauthParams.OAUTH_SECRET_KEY
+            )
+            .update(oauthCode.userId)
+            .digest("hex");
 
           /**
            * Wrong token.. Wizard on board
            */
-          if (authorizationCodeData.client_id !== client.clientId) {
+          if (hashedCode !== data.code) {
             throw {
               status: HttpStatus.BadRequest,
               data: {
@@ -95,7 +97,7 @@ class TokenGrantAuthorizationCodeHelper {
           /**
            * Redirect URI must match
            */
-          if (authorizationCodeData.redirect_uri !== data.redirect_uri) {
+          if (oauthCode.redirectUri !== data.redirect_uri) {
             throw {
               status: HttpStatus.BadRequest,
               data: {
@@ -108,7 +110,7 @@ class TokenGrantAuthorizationCodeHelper {
           /**
            * Code verifier check
            */
-          if (authorizationCodeData.code_challenge) {
+          if (oauthCode.codeChallenge) {
             if (!data.code_verifier) {
               throw {
                 status: HttpStatus.BadRequest,
@@ -118,11 +120,9 @@ class TokenGrantAuthorizationCodeHelper {
                 } as ITokenError,
               };
             } else {
-              switch (authorizationCodeData.code_challenge_method) {
+              switch (oauthCode.codeChallengeMethod) {
                 case "plain":
-                  if (
-                    data.code_verifier !== authorizationCodeData.code_challenge
-                  ) {
+                  if (data.code_verifier !== oauthCode.codeChallenge) {
                     throw {
                       status: HttpStatus.BadRequest,
                       data: {
@@ -142,7 +142,7 @@ class TokenGrantAuthorizationCodeHelper {
                     .replace(/\+/g, "-")
                     .replace(/\//g, "_");
 
-                  if (hashed !== authorizationCodeData.code_challenge) {
+                  if (hashed !== oauthCode.codeChallenge) {
                     throw {
                       status: HttpStatus.BadRequest,
                       data: {
@@ -157,36 +157,29 @@ class TokenGrantAuthorizationCodeHelper {
             }
           }
 
-          // expires at
-          const expiresAt = moment()
+          // access token expires at
+          const accessTokenExpiresAt = moment()
             .add(oauthParams.OAUTH_ACCESS_TOKEN_EXPIRE_IN, "seconds")
             .toDate();
-          // Create token
-          const token = jwt.sign(
-            {
-              userId: client.clientId,
-              client: client._id.toString(),
-              scope: authorizationCode.scope,
-            },
-            oauthParams.OAUTH_SECRET_KEY,
-            {
-              algorithm: oauthParams.OAUTH_JWT_ALGORITHM,
-              expiresIn: oauthParams.OAUTH_ACCESS_TOKEN_EXPIRE_IN,
-              issuer: oauthParams.OAUTH_ISSUER, // must be provided
-            }
-          );
+
+          // refresh token expires at
+          const refreshTokenExpiresAt = moment()
+            .add(oauthParams.OAUTH_REFRESH_TOKEN_EXPIRE_IN, "seconds")
+            .toDate();
 
           /**
-           * Save access token data
+           * Create and save oauth access token data
+           * ******************************************
            */
           const oauthAccessToken = new OauthAccessToken({
-            userId: client.clientId,
+            userId: oauthCode.userId,
             client: client._id,
             name: client.name,
-            scope: authorizationCode.scope,
-            expiresAt: expiresAt,
+            scope: oauthCode.scope,
+            expiresAt: accessTokenExpiresAt,
           } as Partial<IOauthAccessToken>);
 
+          // save access token
           await oauthAccessToken.save();
 
           // refresh token
@@ -204,8 +197,8 @@ class TokenGrantAuthorizationCodeHelper {
            * Save refresh token data
            */
           const oauthRefreshToken = new OauthRefreshToken({
-            accessToken: refreshToken,
-            expiresAt: expiresAt,
+            token: refreshToken,
+            expiresAt: refreshTokenExpiresAt,
           } as Partial<IOauthRefreshToken>);
 
           // save refresh token
@@ -214,7 +207,7 @@ class TokenGrantAuthorizationCodeHelper {
           // revoke previous authorization code
           await OauthAuthCode.updateMany(
             {
-              client: client._id,
+              userId: oauthCode.userId,
             },
             {
               revokedAt: new Date(),
@@ -224,16 +217,36 @@ class TokenGrantAuthorizationCodeHelper {
           // revoke previous access token
           await OauthAccessToken.updateMany(
             {
-              userId: client.clientId,
+              _id: { $ne: oauthAccessToken._id },
+              userId: oauthCode.userId,
             },
             {
               revokedAt: new Date(),
             }
           );
 
+          /**
+           * Create JWT token
+           * ************************************
+           */
+          const token = jwt.sign(
+            {
+              tokenId: oauthAccessToken._id.toString(),
+              userId: oauthCode.userId,
+              client: client._id.toString(),
+              scope: oauthCode.scope,
+            } as IAccessTokenPayload,
+            oauthParams.OAUTH_SECRET_KEY,
+            {
+              algorithm: oauthParams.OAUTH_JWT_ALGORITHM,
+              expiresIn: oauthParams.OAUTH_ACCESS_TOKEN_EXPIRE_IN,
+              issuer: oauthParams.OAUTH_ISSUER, // must be provided
+            }
+          );
+
           return res.status(HttpStatus.Ok).json({
             access_token: token,
-            token_type: "Bearer",
+            token_type: oauthParams.OAUTH_TOKEN_TYPE,
             expires_in: oauthParams.OAUTH_ACCESS_TOKEN_EXPIRE_IN,
             refresh_token: refreshToken,
           } as IToken);

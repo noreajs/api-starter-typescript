@@ -17,8 +17,6 @@ export interface IOauthClient extends Document {
   clientProfile: OauthClientProfiles;
   programmingLanguage: string;
   scope: string;
-  personalAccessClient: string;
-  passwordClient: boolean;
   revokedAt?: Date;
 }
 
@@ -83,12 +81,6 @@ export default mongooseModel<IOauthClient>({
       },
       scope: {
         type: Schema.Types.String,
-      },
-      personalAccessClient: {
-        type: Schema.Types.Boolean,
-      },
-      passwordClient: {
-        type: Schema.Types.Boolean,
       },
       revokedAt: {
         type: Schema.Types.Date,

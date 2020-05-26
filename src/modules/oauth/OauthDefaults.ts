@@ -18,6 +18,7 @@ export interface IOauthDefaults {
     | "ES384"
     | "ES512";
   OAUTH_HMAC_ALGORITHM: string;
+  OAUTH_TOKEN_TYPE: "Bearer" | string;
   passwordCredentialsGrantAuthLogic: (
     username: string,
     password: string,
@@ -34,6 +35,7 @@ export default {
   OAUTH_AUTHORIZATION_CODE_LIFE_TIME: 60 * 5,
   OAUTH_HMAC_ALGORITHM: "sha512",
   OAUTH_JWT_ALGORITHM: "HS512",
+  OAUTH_TOKEN_TYPE: "Bearer",
   passwordCredentialsGrantAuthLogic: function (
     username: string,
     password: string,

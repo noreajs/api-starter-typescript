@@ -57,8 +57,6 @@ class OauthClientController {
           .update(clientId)
           .digest("hex"),
         redirectURIs: req.body.redirectURIs,
-        personalAccessClient: req.body.personalAccessClient,
-        passwordClient: req.body.passwordClient,
       } as Partial<IOauthClient>);
 
       // save change
@@ -94,14 +92,6 @@ class OauthClientController {
             req.body.legalTermsAcceptedAt || client.legalTermsAcceptedAt,
           clientProfile: req.body.clientProfile || client.clientProfile,
           redirectURIs: req.body.redirectURIs || client.redirectURIs,
-          personalAccessClient:
-            req.body.personalAccessClient != undefined
-              ? req.body.personalAccessClient
-              : client.personalAccessClient,
-          passwordClient:
-            req.body.passwordClient != undefined
-              ? req.body.passwordClient
-              : client.passwordClient,
         } as Partial<IOauthClient>);
         // change approval state
         if (req.body.revoked !== undefined) {

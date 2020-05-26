@@ -10,6 +10,7 @@ import OauthAccessToken, {
 } from "../models/OauthAccessToken";
 import HttpStatus from "../../../common/HttpStatus";
 import ITokenError from "../interfaces/ITokenError";
+import IAccessTokenPayload from "../interfaces/IAccessTokenPayload";
 
 class TokenGrantClientCredentialsHelper {
   /**
@@ -32,7 +33,7 @@ class TokenGrantClientCredentialsHelper {
       /**
        * Check client type
        */
-      if(client.clientType !== "confidential"){
+      if (client.clientType !== "confidential") {
         throw {
           status: HttpStatus.BadRequest,
           data: {
@@ -47,24 +48,12 @@ class TokenGrantClientCredentialsHelper {
       const expiresAt = moment()
         .add(oauthParams.OAUTH_ACCESS_TOKEN_EXPIRE_IN, "seconds")
         .toDate();
-      // Create token
-      const token = jwt.sign(
-        {
-          userId: client.clientId,
-          client: client._id.toString(),
-          scope: data.scope
-        },
-        oauthParams.OAUTH_SECRET_KEY,
-        {
-          algorithm: oauthParams.OAUTH_JWT_ALGORITHM,
-          expiresIn: oauthParams.OAUTH_ACCESS_TOKEN_EXPIRE_IN,
-          issuer: oauthParams.OAUTH_ISSUER, // must be provided
-        }
-      );
 
       /**
-       * Save access token data
+       * ACCESS TOKEN
+       * ************************************
        */
+
       const oauthAccessToken = new OauthAccessToken({
         userId: client.clientId,
         client: client._id,
@@ -73,11 +62,13 @@ class TokenGrantClientCredentialsHelper {
         expiresAt: expiresAt,
       } as Partial<IOauthAccessToken>);
 
+      // save oauth access token
       await oauthAccessToken.save();
 
       // revoke previous access token
       await OauthAccessToken.updateMany(
         {
+          _id: { $ne: oauthAccessToken._id },
           userId: client.clientId,
         },
         {
@@ -85,9 +76,28 @@ class TokenGrantClientCredentialsHelper {
         }
       );
 
+      /**
+       * Create JWT token
+       * **************************************
+       */
+      const token = jwt.sign(
+        {
+          tokenId: oauthAccessToken._id.toString(),
+          userId: client.clientId,
+          client: client._id.toString(),
+          scope: data.scope,
+        } as IAccessTokenPayload,
+        oauthParams.OAUTH_SECRET_KEY,
+        {
+          algorithm: oauthParams.OAUTH_JWT_ALGORITHM,
+          expiresIn: oauthParams.OAUTH_ACCESS_TOKEN_EXPIRE_IN,
+          issuer: oauthParams.OAUTH_ISSUER, // must be provided
+        }
+      );
+
       return res.status(HttpStatus.Ok).json({
         access_token: token,
-        token_type: "Bearer",
+        token_type: oauthParams.OAUTH_TOKEN_TYPE,
         expires_in: oauthParams.OAUTH_ACCESS_TOKEN_EXPIRE_IN,
       } as IToken);
     } catch (error) {

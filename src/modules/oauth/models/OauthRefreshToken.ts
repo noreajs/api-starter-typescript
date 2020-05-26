@@ -1,7 +1,7 @@
 import { mongooseModel, Document, Schema } from "@noreajs/mongoose";
 
 export interface IOauthRefreshToken extends Document {
-  accessToken: string;
+  token: string;
   revokedAt?: Date;
   expiresAt?: Date;
 }
@@ -10,9 +10,9 @@ export default mongooseModel<IOauthRefreshToken>({
   name: "OauthRefreshToken",
   collection: "oauth_refresh_tokens",
   schema: new Schema({
-    accessToken: {
+    token: {
       type: Schema.Types.String,
-      required: [true, "The access token is required."],
+      required: [true, "The token is required."],
     },
     revokedAt: {
       type: Schema.Types.Date,

@@ -1,5 +1,7 @@
 import { Request, Response } from "express";
 import jwt from "jsonwebtoken";
+import { v4 as uuidV4 } from "uuid";
+import crypto from "crypto";
 import HttpStatus from "../../../common/HttpStatus";
 import IAuthCodeRequest from "../interfaces/IAuthCodeRequest";
 import OauthClient from "../models/OauthClient";
@@ -20,6 +22,7 @@ import ITokenError from "../interfaces/ITokenError";
 import TokenGrantAuthorizationCodeHelper from "../helpers/TokenGrantAuthorizationCodeHelper";
 import TokenGrantClientCredentialsHelper from "../helpers/TokenGrantClientCredentialsHelper";
 import TokenGrantPasswordCredentialsHelper from "../helpers/TokenGrantPasswordCredentialsHelper";
+import TokenGrantRefreshTokenHelper from "../helpers/TokenGrantRefreshTokenHelper";
 
 class OauthController {
   oauthParams: IOauthDefaults;
@@ -119,9 +122,8 @@ class OauthController {
       }
 
       /**
-       *
        * Authentificate client
-       *
+       * ***************************************
        */
 
       // Client revoked
@@ -190,28 +192,28 @@ class OauthController {
 
       // check response type
       if (data.response_type === "code") {
+        /**
+         * AUTHORIZATION CODE GENERATION
+         * ***********************************
+         */
+
+        const userId = uuidV4(); // if authorization has been skipped
+
         // Authorization code
-        const authorizationCode = jwt.sign(
-          {
-            redirect_uri: data.redirect_uri,
-            client_id: client.clientId,
-            code_challenge: data.code_challenge,
-            code_challenge_method: data.code_challenge_method,
-          },
-          this.oauthParams.OAUTH_SECRET_KEY,
-          {
-            algorithm: this.oauthParams.OAUTH_JWT_ALGORITHM,
-            expiresIn: this.oauthParams.OAUTH_AUTHORIZATION_CODE_LIFE_TIME,
-            issuer: this.oauthParams.OAUTH_ISSUER, // must be provided
-          }
-        );
+        const authorizationCode = crypto
+          .createHmac(
+            this.oauthParams.OAUTH_HMAC_ALGORITHM,
+            this.oauthParams.OAUTH_SECRET_KEY
+          )
+          .update(userId)
+          .digest("hex");
 
         /**
          * Revoke other authorization code
          */
         await OauthAuthCode.updateMany(
           {
-            client: client._id,
+            userId: userId,
           },
           {
             revokedAt: new Date(),
@@ -220,9 +222,13 @@ class OauthController {
 
         // create oauth code
         const oauthCode = new OauthAuthCode({
+          userId: userId,
           authorizationCode: authorizationCode,
           client: client._id,
           scope: data.scope,
+          codeChallenge: data.code_challenge,
+          codeChallengeMethod: data.code_challenge_method,
+          redirectUri: data.redirect_uri,
           expiresAt: moment()
             .add(this.oauthParams.OAUTH_AUTHORIZATION_CODE_LIFE_TIME, "seconds")
             .toDate(),
@@ -240,6 +246,9 @@ class OauthController {
           UrlHelper.injectQueryParams(data.redirect_uri, authResponse)
         );
       } else if (data.response_type === "token") {
+        // user id
+        const userId = uuidV4();
+
         // expires at
         const expiresAt = moment()
           .add(this.oauthParams.OAUTH_ACCESS_TOKEN_EXPIRE_IN, "seconds")
@@ -247,7 +256,7 @@ class OauthController {
         // Create token
         const token = jwt.sign(
           {
-            userId: client.clientId,
+            userId: userId,
             client: client._id.toString(),
             scope: data.scope,
           },
@@ -403,7 +412,7 @@ class OauthController {
             data: {
               error: "invalid_scope",
               error_description:
-                "The requested scope is invalid, unknown, malformed, or exceeds the scope granted."
+                "The requested scope is invalid, unknown, malformed, or exceeds the scope granted.",
             } as ITokenError,
           };
         }
@@ -464,6 +473,15 @@ class OauthController {
         case "password":
           // Resource Owner Password Credentials
           return TokenGrantPasswordCredentialsHelper.run(
+            req,
+            res,
+            data,
+            client,
+            this.oauthParams
+          );
+        case "refresh_token":
+          // Refreshing an Access Token
+          return TokenGrantRefreshTokenHelper.run(
             req,
             res,
             data,
