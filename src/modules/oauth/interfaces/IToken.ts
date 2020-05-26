@@ -4,4 +4,5 @@ export default interface IToken {
   refresh_token?: string;
   expires_in: number;
   state?: string;
+  [key:string]:any;
 }

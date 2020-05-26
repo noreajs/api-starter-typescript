@@ -11,7 +11,7 @@ export interface IOauthClient extends Document {
   logo?: string;
   description?: string;
   legalTermsAcceptedAt?: Date;
-  secretKey: string;
+  secretKey?: string;
   redirectURIs: string[];
   clientType: OauthClientTypes;
   clientProfile: OauthClientProfiles;
@@ -105,6 +105,7 @@ export default mongooseModel<IOauthClient>({
         this.clientType = "confidential";
       } else {
         this.clientType = "public";
+        this.secretKey = undefined;
       }
 
       /**

@@ -12,7 +12,6 @@ import OauthRefreshToken, {
 } from "../models/OauthRefreshToken";
 import moment from "moment";
 import jwt from "jsonwebtoken";
-import { suid } from "rand-token";
 import { IOauthClient } from "../models/OauthClient";
 import ITokenRequest from "../interfaces/ITokenRequest";
 import ICodeChallengeMethodType from "../interfaces/ICodeChallengeMethodType";
@@ -21,15 +20,21 @@ import ITokenError from "../interfaces/ITokenError";
 
 class TokenGrantAuthorizationCodeHelper {
   /**
+   * Get Authorization Code Grant
    *
+   * @param req request
+   * @param res response
+   * @param data token request data
+   * @param client oauth client
+   * @param oauthParams oauth params
    */
-  static run = async (
+  static async run(
     req: Request,
     res: Response,
     data: ITokenRequest,
     client: IOauthClient,
     oauthParams: IOauthDefaults
-  ) => {
+  ) {
     try {
       // auth code
       const authorizationCode = await OauthAuthCode.findOne({
@@ -154,7 +159,7 @@ class TokenGrantAuthorizationCodeHelper {
 
           // expires at
           const expiresAt = moment()
-            .add(oauthParams.OAUTH_EXPIRE_IN, "seconds")
+            .add(oauthParams.OAUTH_ACCESS_TOKEN_EXPIRE_IN, "seconds")
             .toDate();
           // Create token
           const token = jwt.sign(
@@ -166,13 +171,10 @@ class TokenGrantAuthorizationCodeHelper {
             oauthParams.OAUTH_SECRET_KEY,
             {
               algorithm: oauthParams.OAUTH_JWT_ALGORITHM,
-              expiresIn: oauthParams.OAUTH_EXPIRE_IN,
+              expiresIn: oauthParams.OAUTH_ACCESS_TOKEN_EXPIRE_IN,
               issuer: oauthParams.OAUTH_ISSUER, // must be provided
             }
           );
-
-          // refresh token
-          const refreshToken = suid(256);
 
           /**
            * Save access token data
@@ -186,6 +188,17 @@ class TokenGrantAuthorizationCodeHelper {
           } as Partial<IOauthAccessToken>);
 
           await oauthAccessToken.save();
+
+          // refresh token
+          const refreshToken = jwt.sign(
+            oauthAccessToken.toJSON(),
+            oauthParams.OAUTH_SECRET_KEY,
+            {
+              algorithm: oauthParams.OAUTH_JWT_ALGORITHM,
+              expiresIn: oauthParams.OAUTH_REFRESH_TOKEN_EXPIRE_IN,
+              issuer: oauthParams.OAUTH_ISSUER, // must be provided
+            }
+          );
 
           /**
            * Save refresh token data
@@ -211,17 +224,7 @@ class TokenGrantAuthorizationCodeHelper {
           // revoke previous access token
           await OauthAccessToken.updateMany(
             {
-              client: client._id,
-            },
-            {
-              revokedAt: new Date(),
-            }
-          );
-
-          // revoke previous refresh token
-          await OauthAccessToken.updateMany(
-            {
-              client: client._id,
+              userId: client.clientId,
             },
             {
               revokedAt: new Date(),
@@ -231,7 +234,7 @@ class TokenGrantAuthorizationCodeHelper {
           return res.status(HttpStatus.Ok).json({
             access_token: token,
             token_type: "Bearer",
-            expires_in: oauthParams.OAUTH_EXPIRE_IN,
+            expires_in: oauthParams.OAUTH_ACCESS_TOKEN_EXPIRE_IN,
             refresh_token: refreshToken,
           } as IToken);
         }
@@ -256,7 +259,7 @@ class TokenGrantAuthorizationCodeHelper {
         } as ITokenError);
       }
     }
-  };
+  }
 }
 
 export default TokenGrantAuthorizationCodeHelper;

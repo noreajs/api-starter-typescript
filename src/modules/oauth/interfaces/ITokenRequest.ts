@@ -5,6 +5,7 @@ export default interface ITokenRequest {
   client_secret: string;
   redirect_uri: string;
   code: string;
+  scope: string;
   code_verifier: string;
   username: string;
   password: string;

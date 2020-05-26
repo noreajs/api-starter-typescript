@@ -1,8 +1,5 @@
 import { Request, Response } from "express";
-import crypto from "crypto";
-import { suid } from "rand-token";
 import jwt from "jsonwebtoken";
-import { ObjectId } from "bson";
 import HttpStatus from "../../../common/HttpStatus";
 import IAuthCodeRequest from "../interfaces/IAuthCodeRequest";
 import OauthClient from "../models/OauthClient";
@@ -12,9 +9,6 @@ import moment from "moment";
 import OauthAccessToken, {
   IOauthAccessToken,
 } from "../models/OauthAccessToken";
-import OauthRefreshToken, {
-  IOauthRefreshToken,
-} from "../models/OauthRefreshToken";
 import IToken from "../interfaces/IToken";
 import OauthDefaults, { IOauthDefaults } from "../OauthDefaults";
 import { isQueryParamFilled } from "../../../common/Utils";
@@ -25,6 +19,7 @@ import UrlHelper from "../helpers/UrlHelper";
 import ITokenError from "../interfaces/ITokenError";
 import TokenGrantAuthorizationCodeHelper from "../helpers/TokenGrantAuthorizationCodeHelper";
 import TokenGrantClientCredentialsHelper from "../helpers/TokenGrantClientCredentialsHelper";
+import TokenGrantPasswordCredentialsHelper from "../helpers/TokenGrantPasswordCredentialsHelper";
 
 class OauthController {
   oauthParams: IOauthDefaults;
@@ -247,7 +242,7 @@ class OauthController {
       } else if (data.response_type === "token") {
         // expires at
         const expiresAt = moment()
-          .add(this.oauthParams.OAUTH_EXPIRE_IN, "seconds")
+          .add(this.oauthParams.OAUTH_ACCESS_TOKEN_EXPIRE_IN, "seconds")
           .toDate();
         // Create token
         const token = jwt.sign(
@@ -259,7 +254,7 @@ class OauthController {
           this.oauthParams.OAUTH_SECRET_KEY,
           {
             algorithm: this.oauthParams.OAUTH_JWT_ALGORITHM,
-            expiresIn: this.oauthParams.OAUTH_EXPIRE_IN,
+            expiresIn: this.oauthParams.OAUTH_ACCESS_TOKEN_EXPIRE_IN,
             issuer: this.oauthParams.OAUTH_ISSUER,
             // must be provided
           }
@@ -281,7 +276,7 @@ class OauthController {
         const authResponse = {
           access_token: token,
           token_type: "Bearer",
-          expires_in: this.oauthParams.OAUTH_EXPIRE_IN,
+          expires_in: this.oauthParams.OAUTH_ACCESS_TOKEN_EXPIRE_IN,
           state: data.state,
         } as IToken;
 
@@ -345,17 +340,6 @@ class OauthController {
     }
 
     try {
-      if (!data.client_secret) {
-        throw {
-          status: HttpStatus.BadRequest,
-          data: {
-            error: "invalid_request",
-            error_description:
-              "The secret_secret is required. You can send it with client_id in body or via Basic Auth header.",
-          } as ITokenError,
-        };
-      }
-
       if (!data.client_id) {
         throw {
           status: HttpStatus.BadRequest,
@@ -395,8 +379,53 @@ class OauthController {
         };
       }
 
-      // secret code validity
+      /**
+       *
+       * Checking Scope validity
+       *
+       */
+      if (data.scope && client.scope) {
+        const requestScopes = data.scope.split(" ");
+        const clientScopes = client.scope.split(" ");
+
+        let missingScopeFound = false;
+
+        for (const scope of requestScopes) {
+          if (!clientScopes.includes(scope)) {
+            missingScopeFound = true;
+            break;
+          }
+        }
+
+        if (missingScopeFound) {
+          throw {
+            status: HttpStatus.BadRequest,
+            data: {
+              error: "invalid_scope",
+              error_description:
+                "The requested scope is invalid, unknown, malformed, or exceeds the scope granted."
+            } as ITokenError,
+          };
+        }
+      }
+
+      if (client.clientType === "confidential" && !data.client_secret) {
+        throw {
+          status: HttpStatus.BadRequest,
+          data: {
+            error: "invalid_request",
+            error_description:
+              "The secret_secret is required for confidential client. You can send it with client_id in body or via Basic Auth header.",
+          } as ITokenError,
+        };
+      }
+
+      /**
+       * Verify secret code if it exist
+       */
       if (
+        data.client_secret &&
+        data.client_secret.length !== 0 &&
         !SecretHelper.verifyClientSecret({
           clientId: client.clientId,
           hash: data.client_secret,
@@ -426,6 +455,15 @@ class OauthController {
         case "client_credentials":
           // Client Credentials Grant
           return TokenGrantClientCredentialsHelper.run(
+            req,
+            res,
+            data,
+            client,
+            this.oauthParams
+          );
+        case "password":
+          // Resource Owner Password Credentials
+          return TokenGrantPasswordCredentialsHelper.run(
             req,
             res,
             data,

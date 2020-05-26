@@ -45,19 +45,19 @@ class TokenGrantClientCredentialsHelper {
 
       // expires at
       const expiresAt = moment()
-        .add(oauthParams.OAUTH_EXPIRE_IN, "seconds")
+        .add(oauthParams.OAUTH_ACCESS_TOKEN_EXPIRE_IN, "seconds")
         .toDate();
       // Create token
       const token = jwt.sign(
         {
           userId: client.clientId,
           client: client._id.toString(),
-          scope: client.scope
+          scope: data.scope
         },
         oauthParams.OAUTH_SECRET_KEY,
         {
           algorithm: oauthParams.OAUTH_JWT_ALGORITHM,
-          expiresIn: oauthParams.OAUTH_EXPIRE_IN,
+          expiresIn: oauthParams.OAUTH_ACCESS_TOKEN_EXPIRE_IN,
           issuer: oauthParams.OAUTH_ISSUER, // must be provided
         }
       );
@@ -69,7 +69,7 @@ class TokenGrantClientCredentialsHelper {
         userId: client.clientId,
         client: client._id,
         name: client.name,
-        scope: client.scope,
+        scope: data.scope,
         expiresAt: expiresAt,
       } as Partial<IOauthAccessToken>);
 
@@ -78,17 +78,7 @@ class TokenGrantClientCredentialsHelper {
       // revoke previous access token
       await OauthAccessToken.updateMany(
         {
-          client: client._id,
-        },
-        {
-          revokedAt: new Date(),
-        }
-      );
-
-      // revoke previous refresh token
-      await OauthAccessToken.updateMany(
-        {
-          client: client._id,
+          userId: client.clientId,
         },
         {
           revokedAt: new Date(),
@@ -98,7 +88,7 @@ class TokenGrantClientCredentialsHelper {
       return res.status(HttpStatus.Ok).json({
         access_token: token,
         token_type: "Bearer",
-        expires_in: oauthParams.OAUTH_EXPIRE_IN,
+        expires_in: oauthParams.OAUTH_ACCESS_TOKEN_EXPIRE_IN,
       } as IToken);
     } catch (error) {
       if (error.status) {
