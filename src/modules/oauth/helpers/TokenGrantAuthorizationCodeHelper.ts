@@ -178,6 +178,7 @@ class TokenGrantAuthorizationCodeHelper {
             name: client.name,
             scope: oauthCode.scope,
             expiresAt: accessTokenExpiresAt,
+            userAgent: req.headers["user-agent"],
           } as Partial<IOauthAccessToken>);
 
           // save access token

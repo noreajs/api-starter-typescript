@@ -1,6 +1,7 @@
 import ITokenRequest from "../interfaces/ITokenRequest";
 import { Request, Response } from "express";
 import jwt from "jsonwebtoken";
+import { ObjectId } from "bson";
 import { IOauthClient } from "../models/OauthClient";
 import { IOauthDefaults } from "../OauthDefaults";
 import HttpStatus from "../../../common/HttpStatus";
@@ -69,12 +70,23 @@ class TokenGrantRefreshTokenHelper {
       }
 
       // refresh token expired
-      if (oauthRefreshToken.expiresAt || oauthRefreshToken.revokedAt) {
+      if (moment().isAfter(oauthRefreshToken.expiresAt)) {
         throw {
           status: HttpStatus.BadRequest,
           data: {
             error: "invalid_grant",
-            error_description: `The refresh token is expired or revoked.`,
+            error_description: `The refresh token is expired.`,
+          } as ITokenError,
+        };
+      }
+
+      // refresh token revoked
+      if (oauthRefreshToken.revokedAt) {
+        throw {
+          status: HttpStatus.BadRequest,
+          data: {
+            error: "invalid_grant",
+            error_description: `The refresh token is revoked.`,
           } as ITokenError,
         };
       }
@@ -89,13 +101,13 @@ class TokenGrantRefreshTokenHelper {
         {
           algorithms: [oauthParams.OAUTH_JWT_ALGORITHM],
         }
-      ) as IOauthAccessToken;
+      ) as IJwtTokenPayload;
 
       /**
        * Verify client_id
        * *******************************
        */
-      if (data.client_id !== refreshTokenData.client.clientId) {
+      if (data.client_id !== refreshTokenData.client_id) {
         throw {
           status: HttpStatus.BadRequest,
           data: {
@@ -106,15 +118,36 @@ class TokenGrantRefreshTokenHelper {
       }
 
       /**
+       * Load previous token
+       * ********************************
+       */
+
+      // load previous access token
+      const oauthAccessToken = await OauthAccessToken.findById(
+        new ObjectId(refreshTokenData.jti)
+      );
+
+      // token to be refresh doesn't exist
+      if (!oauthAccessToken) {
+        throw {
+          status: HttpStatus.BadRequest,
+          data: {
+            error: "invalid_grant",
+            error_description: `Invalid refresh token. Access token to be refresh does not exist.`,
+          } as ITokenError,
+        };
+      }
+
+      /**
        * Verify scope
        * *******************************
        */
 
       // new access token scope, identical with the previous by default
-      let newAccessTokenScope = refreshTokenData.scope;
+      let newAccessTokenScope = oauthAccessToken.scope;
 
-      if (data.scope && refreshTokenData.scope) {
-        const currentScopes = refreshTokenData.scope.split(" ");
+      if (data.scope && oauthAccessToken.scope) {
+        const currentScopes = oauthAccessToken.scope.split(" ");
         const newScopes = data.scope.split(" ");
         for (const scope of newScopes) {
           if (currentScopes.includes(scope)) {
@@ -156,14 +189,12 @@ class TokenGrantRefreshTokenHelper {
         .toDate();
 
       /**
-       * Create and save oauth access token data
+       * Update and save oauth access token data
        */
-      const oauthAccessToken = new OauthAccessToken({
-        userId: refreshTokenData.userId,
-        client: client._id,
-        name: client.name,
+      oauthAccessToken.set({
         scope: newAccessTokenScope,
         expiresAt: accessTokenExpiresAt,
+        userAgent: req.headers["user-agent"],
       } as Partial<IOauthAccessToken>);
 
       await oauthAccessToken.save();
@@ -179,7 +210,7 @@ class TokenGrantRefreshTokenHelper {
           expiresIn: oauthParams.OAUTH_ACCESS_TOKEN_EXPIRE_IN,
           issuer: OauthHelper.getFullUrl(req),
           audience: client.clientId,
-          subject: refreshTokenData.userId,
+          subject: oauthAccessToken.userId,
           jwtid: oauthAccessToken._id.toString(), // must be provided
         }
       );
@@ -194,17 +225,6 @@ class TokenGrantRefreshTokenHelper {
 
       // save refresh token
       await newOauthRefreshToken.save();
-
-      // revoke previous access token
-      await OauthAccessToken.updateMany(
-        {
-          _id: { $ne: oauthAccessToken._id },
-          userId: client.clientId,
-        },
-        {
-          revokedAt: new Date(),
-        }
-      );
 
       /**
        * Create JWT token
@@ -221,7 +241,7 @@ class TokenGrantRefreshTokenHelper {
           expiresIn: oauthParams.OAUTH_ACCESS_TOKEN_EXPIRE_IN,
           issuer: OauthHelper.getFullUrl(req),
           audience: client.clientId,
-          subject: refreshTokenData.userId,
+          subject: refreshTokenData.sub,
           jwtid: oauthAccessToken._id.toString(),
         }
       );

@@ -61,6 +61,7 @@ class TokenGrantClientCredentialsHelper {
         name: client.name,
         scope: data.scope,
         expiresAt: expiresAt,
+        userAgent: req.headers["user-agent"],
       } as Partial<IOauthAccessToken>);
 
       // save oauth access token

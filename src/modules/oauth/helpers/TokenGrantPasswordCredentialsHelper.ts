@@ -100,6 +100,7 @@ class TokenGrantPasswordCredentialsHelper {
         name: client.name,
         scope: passwordGrantData.scope,
         expiresAt: accessTokenExpiresAt,
+        userAgent: req.headers["user-agent"],
       } as Partial<IOauthAccessToken>);
 
       await oauthAccessToken.save();
