@@ -14,7 +14,7 @@ import OauthAccessToken, {
 import IToken from "../interfaces/IToken";
 import OauthDefaults, { IOauthDefaults } from "../OauthDefaults";
 import { isQueryParamFilled } from "../../../common/Utils";
-import SecretHelper from "../helpers/SecretHelper";
+import OauthHelper from "../helpers/OauthHelper";
 import IAuthorizationErrorResponse from "../interfaces/IAuthorizationErrorResponse";
 import IAuthorizationResponse from "../interfaces/IAuthorizationResponse";
 import UrlHelper from "../helpers/UrlHelper";
@@ -23,6 +23,7 @@ import TokenGrantAuthorizationCodeHelper from "../helpers/TokenGrantAuthorizatio
 import TokenGrantClientCredentialsHelper from "../helpers/TokenGrantClientCredentialsHelper";
 import TokenGrantPasswordCredentialsHelper from "../helpers/TokenGrantPasswordCredentialsHelper";
 import TokenGrantRefreshTokenHelper from "../helpers/TokenGrantRefreshTokenHelper";
+import IJwtTokenPayload from "../interfaces/IJwtTokenPayload";
 
 class OauthController {
   oauthParams: IOauthDefaults;
@@ -253,24 +254,10 @@ class OauthController {
         const expiresAt = moment()
           .add(this.oauthParams.OAUTH_ACCESS_TOKEN_EXPIRE_IN, "seconds")
           .toDate();
-        // Create token
-        const token = jwt.sign(
-          {
-            userId: userId,
-            client: client._id.toString(),
-            scope: data.scope,
-          },
-          this.oauthParams.OAUTH_SECRET_KEY,
-          {
-            algorithm: this.oauthParams.OAUTH_JWT_ALGORITHM,
-            expiresIn: this.oauthParams.OAUTH_ACCESS_TOKEN_EXPIRE_IN,
-            issuer: this.oauthParams.OAUTH_ISSUER,
-            // must be provided
-          }
-        );
 
         /**
-         * Save access token data
+         * Create and save oauth access token data
+         * ******************************************
          */
         const oauthAccessToken = new OauthAccessToken({
           userId: client.clientId,
@@ -281,6 +268,23 @@ class OauthController {
         } as Partial<IOauthAccessToken>);
 
         await oauthAccessToken.save();
+
+        // Create token
+        const token = jwt.sign(
+          {
+            client_id: client.clientId,
+            scope: data.scope,
+          } as IJwtTokenPayload,
+          this.oauthParams.OAUTH_SECRET_KEY,
+          {
+            algorithm: this.oauthParams.OAUTH_JWT_ALGORITHM,
+            expiresIn: this.oauthParams.OAUTH_IMPLICIT_TOKEN_EXPIRE_IN,
+            issuer: OauthHelper.getFullUrl(req),
+            audience: client.clientId,
+            subject: userId,
+            jwtid: oauthAccessToken._id.toString(),
+          }
+        );
 
         const authResponse = {
           access_token: token,
@@ -340,7 +344,7 @@ class OauthController {
     let data: ITokenRequest = req.body as ITokenRequest;
 
     // get basic auth header credentials
-    let basicAuthCredentials = SecretHelper.getBasicAuthHeaderCredentials(req);
+    let basicAuthCredentials = OauthHelper.getBasicAuthHeaderCredentials(req);
 
     // update credential if exist
     if (basicAuthCredentials) {
@@ -435,7 +439,7 @@ class OauthController {
       if (
         data.client_secret &&
         data.client_secret.length !== 0 &&
-        !SecretHelper.verifyClientSecret({
+        !OauthHelper.verifyClientSecret({
           clientId: client.clientId,
           hash: data.client_secret,
           oauthHmacAlgorithm: this.oauthParams.OAUTH_HMAC_ALGORITHM,
@@ -520,6 +524,28 @@ class OauthController {
   async purge(req: Request, res: Response) {
     return res.status(HttpStatus.Ok).json({
       message: "Purge",
+    });
+  }
+
+  /**
+   * Get authorization dialog
+   * @param req request
+   * @param res response
+   */
+  async dialog(req: Request, res: Response) {
+    return res.status(HttpStatus.Ok).json({
+      message: "Dialog",
+    });
+  }
+
+  /**
+   * Get information about a token
+   * @param req request
+   * @param res response
+   */
+  async inspect(req: Request, res: Response) {
+    return res.status(HttpStatus.Ok).json({
+      message: "Inspect token",
     });
   }
 }

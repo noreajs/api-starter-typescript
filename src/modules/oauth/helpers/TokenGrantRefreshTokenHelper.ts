@@ -14,7 +14,8 @@ import OauthAccessToken, {
 } from "../models/OauthAccessToken";
 import moment from "moment";
 import IToken from "../interfaces/IToken";
-import IAccessTokenPayload from "../interfaces/IAccessTokenPayload";
+import IJwtTokenPayload from "../interfaces/IJwtTokenPayload";
+import OauthHelper from "./OauthHelper";
 
 class TokenGrantRefreshTokenHelper {
   /**
@@ -169,12 +170,17 @@ class TokenGrantRefreshTokenHelper {
 
       // refresh token
       const refreshToken = jwt.sign(
-        oauthAccessToken.toJSON(),
+        {
+          client_id: client.clientId,
+        } as IJwtTokenPayload,
         oauthParams.OAUTH_SECRET_KEY,
         {
           algorithm: oauthParams.OAUTH_JWT_ALGORITHM,
-          expiresIn: oauthParams.OAUTH_REFRESH_TOKEN_EXPIRE_IN,
-          issuer: oauthParams.OAUTH_ISSUER, // must be provided
+          expiresIn: oauthParams.OAUTH_ACCESS_TOKEN_EXPIRE_IN,
+          issuer: OauthHelper.getFullUrl(req),
+          audience: client.clientId,
+          subject: refreshTokenData.userId,
+          jwtid: oauthAccessToken._id.toString(), // must be provided
         }
       );
 
@@ -206,16 +212,17 @@ class TokenGrantRefreshTokenHelper {
        */
       const token = jwt.sign(
         {
-          tokenId: oauthAccessToken._id.toString(),
-          userId: refreshTokenData.userId,
-          client: client._id.toString(),
+          client_id: client.clientId,
           scope: newAccessTokenScope,
-        } as IAccessTokenPayload,
+        } as IJwtTokenPayload,
         oauthParams.OAUTH_SECRET_KEY,
         {
           algorithm: oauthParams.OAUTH_JWT_ALGORITHM,
           expiresIn: oauthParams.OAUTH_ACCESS_TOKEN_EXPIRE_IN,
-          issuer: oauthParams.OAUTH_ISSUER, // must be provided
+          issuer: OauthHelper.getFullUrl(req),
+          audience: client.clientId,
+          subject: refreshTokenData.userId,
+          jwtid: oauthAccessToken._id.toString(),
         }
       );
 

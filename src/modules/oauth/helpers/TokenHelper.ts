@@ -1,4 +1,4 @@
-import SecretHelper from "./SecretHelper";
+import OauthHelper from "./OauthHelper";
 import { Request } from "express";
 import HttpStatus from "../../../common/HttpStatus";
 

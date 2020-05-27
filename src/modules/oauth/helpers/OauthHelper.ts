@@ -1,7 +1,7 @@
 import crypto from "crypto";
 import { Request } from "express";
 
-class SecretHelper {
+class OauthHelper {
   /**
    * Verify the client secret
    * @param params params
@@ -41,6 +41,10 @@ class SecretHelper {
       };
     }
   }
+
+  getFullUrl(req: Request) {
+    return req.protocol + '://' + req.get('host')
+  }
 }
 
-export default new SecretHelper();
+export default new OauthHelper();

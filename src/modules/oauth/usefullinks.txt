@@ -1,0 +1,8 @@
+The OAuth 2.0 Authorization Framework: Bearer Token Usage
+https://tools.ietf.org/html/rfc6750
+
+The OAuth 2.0 Authorization Framework
+https://tools.ietf.org/html/rfc6749
+
+OpenID Connect Core 1.0 incorporating errata set 1
+https://openid.net/specs/openid-connect-core-1_0.html#JWT

@@ -10,7 +10,8 @@ import OauthAccessToken, {
 } from "../models/OauthAccessToken";
 import HttpStatus from "../../../common/HttpStatus";
 import ITokenError from "../interfaces/ITokenError";
-import IAccessTokenPayload from "../interfaces/IAccessTokenPayload";
+import IJwtTokenPayload from "../interfaces/IJwtTokenPayload";
+import OauthHelper from "./OauthHelper";
 
 class TokenGrantClientCredentialsHelper {
   /**
@@ -82,16 +83,17 @@ class TokenGrantClientCredentialsHelper {
        */
       const token = jwt.sign(
         {
-          tokenId: oauthAccessToken._id.toString(),
-          userId: client.clientId,
-          client: client._id.toString(),
+          client_id: client.clientId,
           scope: data.scope,
-        } as IAccessTokenPayload,
+        } as IJwtTokenPayload,
         oauthParams.OAUTH_SECRET_KEY,
         {
           algorithm: oauthParams.OAUTH_JWT_ALGORITHM,
           expiresIn: oauthParams.OAUTH_ACCESS_TOKEN_EXPIRE_IN,
-          issuer: oauthParams.OAUTH_ISSUER, // must be provided
+          issuer: OauthHelper.getFullUrl(req),
+          audience: client.clientId,
+          subject: client.clientId,
+          jwtid: oauthAccessToken._id.toString(),
         }
       );
 

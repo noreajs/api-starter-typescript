@@ -17,7 +17,8 @@ import ITokenRequest from "../interfaces/ITokenRequest";
 import ICodeChallengeMethodType from "../interfaces/ICodeChallengeMethodType";
 import { toASCII } from "punycode";
 import ITokenError from "../interfaces/ITokenError";
-import IAccessTokenPayload from "../interfaces/IAccessTokenPayload";
+import IJwtTokenPayload from "../interfaces/IJwtTokenPayload";
+import OauthHelper from "./OauthHelper";
 
 class TokenGrantAuthorizationCodeHelper {
   /**
@@ -184,12 +185,15 @@ class TokenGrantAuthorizationCodeHelper {
 
           // refresh token
           const refreshToken = jwt.sign(
-            oauthAccessToken.toJSON(),
+            { client_id: client.clientId } as IJwtTokenPayload,
             oauthParams.OAUTH_SECRET_KEY,
             {
               algorithm: oauthParams.OAUTH_JWT_ALGORITHM,
-              expiresIn: oauthParams.OAUTH_REFRESH_TOKEN_EXPIRE_IN,
-              issuer: oauthParams.OAUTH_ISSUER, // must be provided
+              expiresIn: oauthParams.OAUTH_ACCESS_TOKEN_EXPIRE_IN,
+              issuer: OauthHelper.getFullUrl(req),
+              audience: client.clientId,
+              subject: oauthCode.userId,
+              jwtid: oauthAccessToken._id.toString(),
             }
           );
 
@@ -231,16 +235,17 @@ class TokenGrantAuthorizationCodeHelper {
            */
           const token = jwt.sign(
             {
-              tokenId: oauthAccessToken._id.toString(),
-              userId: oauthCode.userId,
-              client: client._id.toString(),
+              client_id: client.clientId,
               scope: oauthCode.scope,
-            } as IAccessTokenPayload,
+            } as IJwtTokenPayload,
             oauthParams.OAUTH_SECRET_KEY,
             {
               algorithm: oauthParams.OAUTH_JWT_ALGORITHM,
               expiresIn: oauthParams.OAUTH_ACCESS_TOKEN_EXPIRE_IN,
-              issuer: oauthParams.OAUTH_ISSUER, // must be provided
+              issuer: OauthHelper.getFullUrl(req),
+              audience: client.clientId,
+              subject: oauthCode.userId,
+              jwtid: oauthAccessToken._id.toString(),
             }
           );
 

@@ -23,6 +23,7 @@
     "cors": "^2.8.5",
     "env-cmd": "^10.0.1",
     "express": "^4.17.1",
+    "express-jwt": "^5.3.3",
     "express-useragent": "^1.0.13",
     "jsonwebtoken": "^8.5.1",
     "mailgen": "^2.0.10",

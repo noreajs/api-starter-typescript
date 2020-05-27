@@ -36,6 +36,11 @@ export default (app: Application) => {
       g.route("/clients/:id").delete([oauthClientController.delete]);
 
       /**
+       * Get authorization dialog
+       */
+      g.route("/dialog").post([oauthController.dialog]);
+
+      /**
        * Authorise
        */
       g.route("/authorize").get([oauthController.authorize]);
@@ -44,6 +49,11 @@ export default (app: Application) => {
        * Get token
        */
       g.route("/token").post([oauthController.token]);
+
+      /**
+       * Purge revoked and expired token
+       */
+      g.route("/token/inspect").post([oauthController.inspect]);
 
       /**
        * Purge revoked and expired token
