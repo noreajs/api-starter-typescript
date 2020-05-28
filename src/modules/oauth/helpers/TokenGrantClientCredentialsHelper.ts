@@ -45,64 +45,22 @@ class TokenGrantClientCredentialsHelper {
         };
       }
 
-      // expires at
-      const expiresAt = moment()
-        .add(oauthParams.OAUTH_ACCESS_TOKEN_EXPIRE_IN, "seconds")
-        .toDate();
-
       /**
-       * ACCESS TOKEN
-       * ************************************
+       * Generate tokens
+       * ******************************
        */
-
-      const oauthAccessToken = new OauthAccessToken({
-        userId: client.clientId,
-        client: client._id,
-        name: client.name,
+      const tokens = await client.newAccessToken({
+        req: req,
+        oauthParams: oauthParams,
+        grant: "client_credentials",
         scope: data.scope,
-        expiresAt: expiresAt,
-        userAgent: req.headers["user-agent"],
-      } as Partial<IOauthAccessToken>);
-
-      // save oauth access token
-      await oauthAccessToken.save();
-
-      // revoke previous access token
-      await OauthAccessToken.updateMany(
-        {
-          _id: { $ne: oauthAccessToken._id },
-          userId: client.clientId,
-        },
-        {
-          revokedAt: new Date(),
-        }
-      );
-
-      /**
-       * Create JWT token
-       * **************************************
-       */
-      const token = jwt.sign(
-        {
-          client_id: client.clientId,
-          scope: data.scope,
-          azp: client.clientId,
-        } as IJwtTokenPayload,
-        oauthParams.OAUTH_SECRET_KEY,
-        {
-          algorithm: oauthParams.OAUTH_JWT_ALGORITHM,
-          expiresIn: oauthParams.OAUTH_ACCESS_TOKEN_EXPIRE_IN,
-          issuer: OauthHelper.getFullUrl(req),
-          audience: client.clientId,
-          subject: client.clientId,
-          jwtid: oauthAccessToken._id.toString(),
-        }
-      );
+        subject: client.clientId,
+      });
 
       return res.status(HttpStatus.Ok).json({
-        access_token: token,
+        access_token: tokens.token,
         token_type: oauthParams.OAUTH_TOKEN_TYPE,
-        expires_in: oauthParams.OAUTH_ACCESS_TOKEN_EXPIRE_IN,
+        expires_in: tokens.accessTokenExpireIn,
       } as IToken);
     } catch (error) {
       if (error.status) {

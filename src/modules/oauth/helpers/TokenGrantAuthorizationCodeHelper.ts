@@ -158,83 +158,23 @@ class TokenGrantAuthorizationCodeHelper {
             }
           }
 
-          // access token expires at
-          const accessTokenExpiresAt = moment()
-            .add(oauthParams.OAUTH_ACCESS_TOKEN_EXPIRE_IN, "seconds")
-            .toDate();
-
-          // refresh token expires at
-          const refreshTokenExpiresAt = moment()
-            .add(oauthParams.OAUTH_REFRESH_TOKEN_EXPIRE_IN, "seconds")
-            .toDate();
-
           /**
-           * Create and save oauth access token data
-           * ******************************************
+           * Generate tokens
+           * ******************************
            */
-          const oauthAccessToken = await new OauthAccessToken({
-            userId: oauthCode.userId,
-            client: client._id,
-            name: client.name,
+          const tokens = await client.newAccessToken({
+            req: req,
+            oauthParams: oauthParams,
+            grant: "authorization_code",
             scope: oauthCode.scope,
-            expiresAt: accessTokenExpiresAt,
-            userAgent: req.headers["user-agent"],
-          } as Partial<IOauthAccessToken>).save();
-
-          /**
-           * Create and save refresh token data
-           * *********************************************
-           */
-          const oauthRefreshToken = await new OauthRefreshToken({
-            accessToken: oauthAccessToken._id,
-            expiresAt: refreshTokenExpiresAt,
-          } as Partial<IOauthRefreshToken>).save();
-
-          /**
-           * Revoke previous credentials
-           * ***************************************
-           */
-
-          // revoke authorization code
-          oauthCode.set({ revokedAt: new Date() });
-          // save change
-          await oauthCode.save();
-
-          /**
-           * Create JWT refresh token
-           * Reserved to confidential client only
-           * ************************************
-           */
-          const refreshToken =
-            client.clientType === "confidential"
-              ? OauthHelper.jwtSign(req, oauthParams, {
-                  client_id: client.clientId,
-                  aud: client.clientId,
-                  sub: oauthCode.userId,
-                  jti: oauthRefreshToken._id.toString(),
-                  exp: refreshTokenExpiresAt.getTime(),
-                })
-              : undefined;
-
-          /**
-           * Create JWT access token
-           * ************************************
-           */
-          const token = OauthHelper.jwtSign(req, oauthParams, {
-            client_id: client.clientId,
-            scope: oauthCode.scope,
-            azp: client.clientId,
-            aud: client.clientId,
-            sub: oauthCode.userId,
-            jti: oauthAccessToken._id.toString(),
-            exp: accessTokenExpiresAt.getTime(),
+            subject: oauthCode.userId,
           });
 
           return res.status(HttpStatus.Ok).json({
-            access_token: token,
+            access_token: tokens.token,
             token_type: oauthParams.OAUTH_TOKEN_TYPE,
-            expires_in: oauthParams.OAUTH_ACCESS_TOKEN_EXPIRE_IN,
-            refresh_token: refreshToken,
+            expires_in: tokens.accessTokenExpireIn,
+            refresh_token: tokens.refreshToken,
           } as IToken);
         }
       } else {

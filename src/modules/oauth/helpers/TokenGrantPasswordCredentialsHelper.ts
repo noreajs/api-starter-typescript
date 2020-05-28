@@ -11,7 +11,7 @@ import OauthRefreshToken, {
 } from "../models/OauthRefreshToken";
 import IToken from "../interfaces/IToken";
 import HttpStatus from "../../../common/HttpStatus";
-import { Request, Response } from "express";
+import { Request, Response, request } from "express";
 import ITokenError from "../interfaces/ITokenError";
 import { isQueryParamFilled } from "../../../common/Utils";
 import IJwtTokenPayload from "../interfaces/IJwtTokenPayload";
@@ -81,83 +81,23 @@ class TokenGrantPasswordCredentialsHelper {
         };
       }
 
-      // access token expires at
-      const accessTokenExpiresAt = moment()
-        .add(oauthParams.OAUTH_ACCESS_TOKEN_EXPIRE_IN, "seconds")
-        .toDate();
-
-      // refresh token expires at
-      const refreshTokenExpiresAt = moment()
-        .add(oauthParams.OAUTH_REFRESH_TOKEN_EXPIRE_IN, "seconds")
-        .toDate();
-
       /**
-       * Save access token data
+       * Generate tokens
+       * ******************************
        */
-      const oauthAccessToken = new OauthAccessToken({
-        userId: passwordGrantData.userId,
-        client: client._id,
-        name: client.name,
+      const tokens = await client.newAccessToken({
+        req: req,
+        oauthParams: oauthParams,
+        grant: "password",
         scope: passwordGrantData.scope,
-        expiresAt: accessTokenExpiresAt,
-        userAgent: req.headers["user-agent"],
-      } as Partial<IOauthAccessToken>);
-
-      await oauthAccessToken.save();
-
-      // refresh token
-      const refreshToken = jwt.sign(
-        {
-          client_id: client.clientId,
-        } as IJwtTokenPayload,
-        oauthParams.OAUTH_SECRET_KEY,
-        {
-          algorithm: oauthParams.OAUTH_JWT_ALGORITHM,
-          expiresIn: oauthParams.OAUTH_ACCESS_TOKEN_EXPIRE_IN,
-          issuer: OauthHelper.getFullUrl(req),
-          audience: client.clientId,
-          subject: passwordGrantData.userId,
-          jwtid: oauthAccessToken._id.toString(),
-        }
-      );
-
-      /**
-       * Save refresh token data
-       */
-      const oauthRefreshToken = new OauthRefreshToken({
-        token: refreshToken,
-        expiresAt: refreshTokenExpiresAt,
-      } as Partial<IOauthRefreshToken>);
-
-      // save refresh token
-      await oauthRefreshToken.save();
-
-      /**
-       * Create JWT token
-       * **************************************
-       */
-      const token = jwt.sign(
-        {
-          client_id: client.clientId,
-          scope: passwordGrantData.scope,
-          azp: client.clientId,
-        } as IJwtTokenPayload,
-        oauthParams.OAUTH_SECRET_KEY,
-        {
-          algorithm: oauthParams.OAUTH_JWT_ALGORITHM,
-          expiresIn: oauthParams.OAUTH_ACCESS_TOKEN_EXPIRE_IN,
-          issuer: OauthHelper.getFullUrl(req),
-          audience: client.clientId,
-          subject: passwordGrantData.userId,
-          jwtid: oauthAccessToken._id.toString(),
-        }
-      );
+        subject: passwordGrantData.userId,
+      });
 
       return res.status(HttpStatus.Ok).json({
-        access_token: token,
+        access_token: tokens.token,
         token_type: oauthParams.OAUTH_TOKEN_TYPE,
-        expires_in: oauthParams.OAUTH_ACCESS_TOKEN_EXPIRE_IN,
-        refresh_token: refreshToken,
+        expires_in: tokens.accessTokenExpireIn,
+        refresh_token: tokens.refreshToken,
         data: passwordGrantData.extraData,
       } as IToken);
     } catch (error) {

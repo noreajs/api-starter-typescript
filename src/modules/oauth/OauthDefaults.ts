@@ -19,12 +19,32 @@ export interface IOauthDefaults {
     | "ES384"
     | "ES512";
   OAUTH_HMAC_ALGORITHM: string;
-  OAUTH_TOKEN_TYPE: "Bearer" | string;
+  OAUTH_TOKEN_TYPE: "Bearer";
   passwordCredentialsGrantAuthLogic: (
     username: string,
     password: string,
     scope?: string
   ) => Promise<IPasswordGrantAuthData> | IPasswordGrantAuthData;
+  accessTokenExpiresIn: {
+    confidential: {
+      internal: number;
+      external: number;
+    };
+    public: {
+      internal: number;
+      external: number;
+    };
+  };
+  refreshTokenExpiresIn: {
+    confidential: {
+      internal: number;
+      external: number;
+    };
+    public: {
+      internal: number;
+      external: number;
+    };
+  };
 }
 
 export default {
@@ -55,5 +75,25 @@ export default {
         },
       },
     };
+  },
+  accessTokenExpiresIn: {
+    confidential: {
+      internal: 60 * 60 * 24, // 24h
+      external: 60 * 60 * 12, // 12h
+    },
+    public: {
+      internal: 60 * 60 * 2, // 2h
+      external: 60 * 60, // 1h
+    },
+  },
+  refreshTokenExpiresIn: {
+    confidential: {
+      internal: 60 * 60 * 24 * 30 * 12, // 1 year
+      external: 60 * 60 * 24 * 30, // 30 days
+    },
+    public: {
+      internal: 60 * 60 * 24 * 30, // 30 days
+      external: 60 * 60 * 24 * 7, // 1 week
+    },
   },
 } as IOauthDefaults;

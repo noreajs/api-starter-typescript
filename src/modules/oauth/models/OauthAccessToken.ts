@@ -8,7 +8,7 @@ export interface IOauthAccessToken extends Document {
   scope: string;
   userAgent: string;
   revokedAt?: Date;
-  expiresAt?: Date;
+  expiresAt: Date;
 }
 
 export default mongooseModel<IOauthAccessToken>({

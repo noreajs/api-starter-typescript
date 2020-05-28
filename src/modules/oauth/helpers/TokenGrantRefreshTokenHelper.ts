@@ -57,7 +57,7 @@ class TokenGrantRefreshTokenHelper {
        * Get refresh token data
        * *******************************
        */
-      jwt.verify(
+      await jwt.verify(
         data.refresh_token,
         oauthParams.OAUTH_SECRET_KEY,
         {

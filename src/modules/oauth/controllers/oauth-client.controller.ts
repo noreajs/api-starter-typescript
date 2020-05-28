@@ -43,11 +43,12 @@ class OauthClientController {
       const client = new OauthClient({
         clientId: clientId,
         name: req.body.name,
-        website: req.body.website,
+        domaine: req.body.domaine,
         logo: req.body.logo,
         programmingLanguage: req.body.programmingLanguage,
         scope: req.body.scope,
         legalTermsAcceptedAt: req.body.legalTermsAcceptedAt,
+        internal: req.body.internal,
         clientProfile: req.body.clientProfile,
         secretKey: crypto
           .createHmac(
@@ -83,11 +84,15 @@ class OauthClientController {
         // apply changes
         client.set({
           name: req.body.name || client.name,
-          website: req.body.website || client.website,
+          domaine: req.body.domaine || client.domaine,
           logo: req.body.logo || client.logo,
           programmingLanguage:
             req.body.programmingLanguage || client.programmingLanguage,
           scope: req.body.scope,
+          internal:
+            req.body.internal !== undefined
+              ? req.body.internal
+              : client.internal,
           legalTermsAcceptedAt:
             req.body.legalTermsAcceptedAt || client.legalTermsAcceptedAt,
           clientProfile: req.body.clientProfile || client.clientProfile,
