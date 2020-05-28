@@ -3,15 +3,8 @@ import { IOauthClient } from "../models/OauthClient";
 import { IOauthDefaults } from "../OauthDefaults";
 import IToken from "../interfaces/IToken";
 import { Request, Response } from "express";
-import moment from "moment";
-import jwt from "jsonwebtoken";
-import OauthAccessToken, {
-  IOauthAccessToken,
-} from "../models/OauthAccessToken";
 import HttpStatus from "../../../common/HttpStatus";
 import ITokenError from "../interfaces/ITokenError";
-import IJwtTokenPayload from "../interfaces/IJwtTokenPayload";
-import OauthHelper from "./OauthHelper";
 
 class TokenGrantClientCredentialsHelper {
   /**
@@ -31,6 +24,20 @@ class TokenGrantClientCredentialsHelper {
     oauthParams: IOauthDefaults
   ) {
     try {
+      /**
+       * Check scopes
+       * ****************
+       */
+      if (!client.validateScope(data.scope)) {
+        throw {
+          status: HttpStatus.BadRequest,
+          data: {
+            error: "invalid_scope",
+            error_description: "The request scope must be in client scope.",
+          } as ITokenError,
+        };
+      }
+
       /**
        * Check client type
        */

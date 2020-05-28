@@ -1,21 +1,11 @@
 import ITokenRequest from "../interfaces/ITokenRequest";
 import { IOauthClient } from "../models/OauthClient";
 import { IOauthDefaults } from "../OauthDefaults";
-import moment from "moment";
-import jwt from "jsonwebtoken";
-import OauthAccessToken, {
-  IOauthAccessToken,
-} from "../models/OauthAccessToken";
-import OauthRefreshToken, {
-  IOauthRefreshToken,
-} from "../models/OauthRefreshToken";
 import IToken from "../interfaces/IToken";
 import HttpStatus from "../../../common/HttpStatus";
 import { Request, Response, request } from "express";
 import ITokenError from "../interfaces/ITokenError";
-import { isQueryParamFilled } from "../../../common/Utils";
-import IJwtTokenPayload from "../interfaces/IJwtTokenPayload";
-import OauthHelper from "./OauthHelper";
+import UtilsHelper from "./UtilsHelper";
 
 class TokenGrantPasswordCredentialsHelper {
   /**
@@ -35,19 +25,22 @@ class TokenGrantPasswordCredentialsHelper {
     oauthParams: IOauthDefaults
   ) {
     try {
-      // Required parameters
-      const requiredParameters = [];
-
       /**
-       * Required parameters
+       * Check scopes
+       * ****************
        */
-      if (!isQueryParamFilled(data.username)) {
-        requiredParameters.push("username");
+      if (!client.validateScope(data.scope)) {
+        throw {
+          status: HttpStatus.BadRequest,
+          data: {
+            error: "invalid_scope",
+            error_description: "The request scope must be in client scope.",
+          } as ITokenError,
+        };
       }
 
-      if (!isQueryParamFilled(data.password)) {
-        requiredParameters.push("password");
-      }
+      // Required parameters
+      const requiredParameters = UtilsHelper.checkAttributes<ITokenRequest>(["username", "password"], data);
 
       if (requiredParameters.length != 0) {
         throw {

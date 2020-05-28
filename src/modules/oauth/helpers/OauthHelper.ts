@@ -59,6 +59,8 @@ class OauthHelper {
       }
     )
   }
+
+  
 }
 
 export default new OauthHelper();

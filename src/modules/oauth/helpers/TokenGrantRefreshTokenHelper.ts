@@ -1,15 +1,11 @@
 import ITokenRequest from "../interfaces/ITokenRequest";
 import { Request, Response } from "express";
 import jwt from "jsonwebtoken";
-import { ObjectId } from "bson";
 import { IOauthClient } from "../models/OauthClient";
 import { IOauthDefaults } from "../OauthDefaults";
 import HttpStatus from "../../../common/HttpStatus";
 import ITokenError from "../interfaces/ITokenError";
-import { isQueryParamFilled } from "../../../common/Utils";
-import OauthRefreshToken, {
-  IOauthRefreshToken,
-} from "../models/OauthRefreshToken";
+import OauthRefreshToken from "../models/OauthRefreshToken";
 import OauthAccessToken, {
   IOauthAccessToken,
 } from "../models/OauthAccessToken";
@@ -17,6 +13,7 @@ import moment from "moment";
 import IToken from "../interfaces/IToken";
 import IJwtTokenPayload from "../interfaces/IJwtTokenPayload";
 import OauthHelper from "./OauthHelper";
+import UtilsHelper from "./UtilsHelper";
 
 class TokenGrantRefreshTokenHelper {
   /**
@@ -37,12 +34,26 @@ class TokenGrantRefreshTokenHelper {
   ) {
     try {
       /**
+       * Check scopes
+       * ****************
+       */
+      if (!client.validateScope(data.scope)) {
+        throw {
+          status: HttpStatus.BadRequest,
+          data: {
+            error: "invalid_scope",
+            error_description: "The request scope must be in client scope.",
+          } as ITokenError,
+        };
+      }
+
+      /**
        * REFRESH TOKEN VERIFICATION
        * *******************************
        */
-
+      
       // Check if refresh token is within the request
-      if (!isQueryParamFilled(data.refresh_token)) {
+      if (UtilsHelper.checkAttributes<ITokenRequest>(["refresh_token"], data).length !== 0) {
         throw {
           status: HttpStatus.BadRequest,
           redirect: false,

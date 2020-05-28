@@ -3,22 +3,12 @@ import crypto from "crypto";
 import { IOauthDefaults } from "../OauthDefaults";
 import HttpStatus from "../../../common/HttpStatus";
 import IToken from "../interfaces/IToken";
-import OauthAccessToken, {
-  IOauthAccessToken,
-} from "../models/OauthAccessToken";
 import OauthAuthCode from "../models/OauthAuthCode";
-import OauthRefreshToken, {
-  IOauthRefreshToken,
-} from "../models/OauthRefreshToken";
 import moment from "moment";
-import jwt from "jsonwebtoken";
-import { IOauthClient } from "../models/OauthClient";
 import ITokenRequest from "../interfaces/ITokenRequest";
-import ICodeChallengeMethodType from "../interfaces/ICodeChallengeMethodType";
 import { toASCII } from "punycode";
 import ITokenError from "../interfaces/ITokenError";
-import IJwtTokenPayload from "../interfaces/IJwtTokenPayload";
-import OauthHelper from "./OauthHelper";
+import { IOauthClient } from "../models/OauthClient";
 
 class TokenGrantAuthorizationCodeHelper {
   /**
