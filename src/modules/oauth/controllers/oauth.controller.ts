@@ -274,6 +274,7 @@ class OauthController {
           {
             client_id: client.clientId,
             scope: data.scope,
+            azp: client.clientId,
           } as IJwtTokenPayload,
           this.oauthParams.OAUTH_SECRET_KEY,
           {

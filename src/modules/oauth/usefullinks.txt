@@ -6,3 +6,6 @@ https://tools.ietf.org/html/rfc6749
 
 OpenID Connect Core 1.0 incorporating errata set 1
 https://openid.net/specs/openid-connect-core-1_0.html#JWT
+
+OpenID Connect
+https://developers.google.com/identity/protocols/oauth2/openid-connect#obtainuserinfo

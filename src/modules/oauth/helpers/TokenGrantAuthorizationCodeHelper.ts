@@ -172,83 +172,63 @@ class TokenGrantAuthorizationCodeHelper {
            * Create and save oauth access token data
            * ******************************************
            */
-          const oauthAccessToken = new OauthAccessToken({
+          const oauthAccessToken = await new OauthAccessToken({
             userId: oauthCode.userId,
             client: client._id,
             name: client.name,
             scope: oauthCode.scope,
             expiresAt: accessTokenExpiresAt,
             userAgent: req.headers["user-agent"],
-          } as Partial<IOauthAccessToken>);
-
-          // save access token
-          await oauthAccessToken.save();
-
-          // refresh token
-          const refreshToken = jwt.sign(
-            { client_id: client.clientId } as IJwtTokenPayload,
-            oauthParams.OAUTH_SECRET_KEY,
-            {
-              algorithm: oauthParams.OAUTH_JWT_ALGORITHM,
-              expiresIn: oauthParams.OAUTH_ACCESS_TOKEN_EXPIRE_IN,
-              issuer: OauthHelper.getFullUrl(req),
-              audience: client.clientId,
-              subject: oauthCode.userId,
-              jwtid: oauthAccessToken._id.toString(),
-            }
-          );
+          } as Partial<IOauthAccessToken>).save();
 
           /**
-           * Save refresh token data
+           * Create and save refresh token data
+           * *********************************************
            */
-          const oauthRefreshToken = new OauthRefreshToken({
-            token: refreshToken,
+          const oauthRefreshToken = await new OauthRefreshToken({
+            accessToken: oauthAccessToken._id,
             expiresAt: refreshTokenExpiresAt,
-          } as Partial<IOauthRefreshToken>);
-
-          // save refresh token
-          await oauthRefreshToken.save();
-
-          // revoke previous authorization code
-          await OauthAuthCode.updateMany(
-            {
-              userId: oauthCode.userId,
-            },
-            {
-              revokedAt: new Date(),
-            }
-          );
-
-          // revoke previous access token
-          await OauthAccessToken.updateMany(
-            {
-              _id: { $ne: oauthAccessToken._id },
-              userId: oauthCode.userId,
-            },
-            {
-              revokedAt: new Date(),
-            }
-          );
+          } as Partial<IOauthRefreshToken>).save();
 
           /**
-           * Create JWT token
+           * Revoke previous credentials
+           * ***************************************
+           */
+
+          // revoke authorization code
+          oauthCode.set({ revokedAt: new Date() });
+          // save change
+          await oauthCode.save();
+
+          /**
+           * Create JWT refresh token
+           * Reserved to confidential client only
            * ************************************
            */
-          const token = jwt.sign(
-            {
-              client_id: client.clientId,
-              scope: oauthCode.scope,
-            } as IJwtTokenPayload,
-            oauthParams.OAUTH_SECRET_KEY,
-            {
-              algorithm: oauthParams.OAUTH_JWT_ALGORITHM,
-              expiresIn: oauthParams.OAUTH_ACCESS_TOKEN_EXPIRE_IN,
-              issuer: OauthHelper.getFullUrl(req),
-              audience: client.clientId,
-              subject: oauthCode.userId,
-              jwtid: oauthAccessToken._id.toString(),
-            }
-          );
+          const refreshToken =
+            client.clientType === "confidential"
+              ? OauthHelper.jwtSign(req, oauthParams, {
+                  client_id: client.clientId,
+                  aud: client.clientId,
+                  sub: oauthCode.userId,
+                  jti: oauthRefreshToken._id.toString(),
+                  exp: refreshTokenExpiresAt.getTime(),
+                })
+              : undefined;
+
+          /**
+           * Create JWT access token
+           * ************************************
+           */
+          const token = OauthHelper.jwtSign(req, oauthParams, {
+            client_id: client.clientId,
+            scope: oauthCode.scope,
+            azp: client.clientId,
+            aud: client.clientId,
+            sub: oauthCode.userId,
+            jti: oauthAccessToken._id.toString(),
+            exp: accessTokenExpiresAt.getTime(),
+          });
 
           return res.status(HttpStatus.Ok).json({
             access_token: token,

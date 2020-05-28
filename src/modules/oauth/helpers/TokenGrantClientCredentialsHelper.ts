@@ -86,6 +86,7 @@ class TokenGrantClientCredentialsHelper {
         {
           client_id: client.clientId,
           scope: data.scope,
+          azp: client.clientId,
         } as IJwtTokenPayload,
         oauthParams.OAUTH_SECRET_KEY,
         {

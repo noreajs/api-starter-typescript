@@ -51,9 +51,14 @@ export default (app: Application) => {
       g.route("/token").post([oauthController.token]);
 
       /**
-       * Purge revoked and expired token
+       * Get token info
        */
-      g.route("/token/inspect").post([oauthController.inspect]);
+      g.route("/tokeninfo").post([oauthController.inspect]);
+
+      /**
+       * Get user info
+       */
+      g.route("/userinfo").post([oauthController.inspect]);
 
       /**
        * Purge revoked and expired token

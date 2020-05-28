@@ -1,5 +1,8 @@
 import crypto from "crypto";
 import { Request } from "express";
+import { IOauthDefaults } from "../OauthDefaults";
+import IJwtTokenPayload from "../interfaces/IJwtTokenPayload";
+import { SignOptions, sign } from "jsonwebtoken";
 
 class OauthHelper {
   /**
@@ -44,6 +47,17 @@ class OauthHelper {
 
   getFullUrl(req: Request) {
     return req.protocol + '://' + req.get('host')
+  }
+  
+  jwtSign(req: Request, oauthParams: IOauthDefaults, claims: IJwtTokenPayload){
+    return sign(
+      claims,
+      oauthParams.OAUTH_SECRET_KEY,
+      {
+        algorithm: oauthParams.OAUTH_JWT_ALGORITHM,
+        issuer: this.getFullUrl(req),
+      }
+    )
   }
 }
 

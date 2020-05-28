@@ -132,17 +132,6 @@ class TokenGrantPasswordCredentialsHelper {
       // save refresh token
       await oauthRefreshToken.save();
 
-      // revoke previous access token
-      await OauthAccessToken.updateMany(
-        {
-          _id: { $ne: oauthAccessToken._id },
-          userId: passwordGrantData.userId,
-        },
-        {
-          revokedAt: new Date(),
-        }
-      );
-
       /**
        * Create JWT token
        * **************************************
@@ -151,6 +140,7 @@ class TokenGrantPasswordCredentialsHelper {
         {
           client_id: client.clientId,
           scope: passwordGrantData.scope,
+          azp: client.clientId,
         } as IJwtTokenPayload,
         oauthParams.OAUTH_SECRET_KEY,
         {

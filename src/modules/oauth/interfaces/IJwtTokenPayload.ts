@@ -72,7 +72,7 @@ export type IJwtTokenPayload = {
   [key in
     | JwtTokenReservedClaimType
     | JwtTokenStandardClaimType
-    | JwtTokenAddressClaimType]: any;
+    | JwtTokenAddressClaimType]?: any;
 };
 
 export default IJwtTokenPayload;

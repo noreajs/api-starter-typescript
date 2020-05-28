@@ -1,5 +1,5 @@
 import { IOauthClient } from "./OauthClient";
-import { mongooseModel, Document, Schema } from "@noreajs/mongoose";
+import { mongooseModel, Document, Schema, model } from "@noreajs/mongoose";
 
 export interface IOauthAccessToken extends Document {
   userId: string;
@@ -44,5 +44,5 @@ export default mongooseModel<IOauthAccessToken>({
     {
       timestamps: true,
     }
-  ),
+  )
 });
