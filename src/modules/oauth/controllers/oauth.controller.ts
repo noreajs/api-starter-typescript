@@ -24,6 +24,7 @@ import TokenGrantClientCredentialsHelper from "../helpers/TokenGrantClientCreden
 import TokenGrantPasswordCredentialsHelper from "../helpers/TokenGrantPasswordCredentialsHelper";
 import TokenGrantRefreshTokenHelper from "../helpers/TokenGrantRefreshTokenHelper";
 import IJwtTokenPayload from "../interfaces/IJwtTokenPayload";
+import UtilsHelper from "../helpers/UtilsHelper";
 
 class OauthController {
   oauthParams: IOauthDefaults;
@@ -41,24 +42,14 @@ class OauthController {
     // get request query data
     let data: IAuthCodeRequest = req.query as IAuthCodeRequest;
 
-    // Required parameters
-    const requiredParameters = [];
-
     try {
       /**
        * Required parameters
        */
-      if (!isQueryParamFilled(data.response_type)) {
-        requiredParameters.push("response_type");
-      }
-
-      if (!isQueryParamFilled(data.redirect_uri)) {
-        requiredParameters.push("redirect_uri");
-      }
-
-      if (!isQueryParamFilled(data.client_id)) {
-        requiredParameters.push("client_id");
-      }
+      const requiredParameters = UtilsHelper.checkAttributes<IAuthCodeRequest>(
+        ["response_type", "redirect_uri", "client_id"],
+        data
+      );
 
       if (requiredParameters.length != 0) {
         throw {
@@ -141,36 +132,17 @@ class OauthController {
       }
 
       /**
-       *
-       *
-       * Checking Scope validity
-       *
-       *
+       * Check scopes
+       * ****************
        */
-      if (data.scope && client.scope) {
-        const requestScopes = data.scope.split(" ");
-        const clientScopes = client.scope.split(" ");
-
-        let missingScopeFound = false;
-
-        for (const scope of requestScopes) {
-          if (!clientScopes.includes(scope)) {
-            missingScopeFound = true;
-            break;
-          }
-        }
-
-        if (missingScopeFound) {
-          throw {
-            status: HttpStatus.BadRequest,
-            data: {
-              error: "invalid_scope",
-              error_description:
-                "The requested scope is invalid, unknown, or malformed.",
-              state: data.state,
-            } as IAuthorizationErrorResponse,
-          };
-        }
+      if (data.scope && !client.validateScope(data.scope)) {
+        throw {
+          status: HttpStatus.BadRequest,
+          data: {
+            error: "invalid_scope",
+            error_description: "The request scope must be in client scopes.",
+          } as ITokenError,
+        };
       }
 
       /**
@@ -250,47 +222,18 @@ class OauthController {
         // user id
         const userId = uuidV4();
 
-        // expires at
-        const expiresAt = moment()
-          .add(this.oauthParams.OAUTH_ACCESS_TOKEN_EXPIRE_IN, "seconds")
-          .toDate();
-
-        /**
-         * Create and save oauth access token data
-         * ******************************************
-         */
-        const oauthAccessToken = new OauthAccessToken({
-          userId: client.clientId,
-          client: client._id,
-          name: client.name,
-          scope: data.scope,
-          expiresAt: expiresAt,
-        } as Partial<IOauthAccessToken>);
-
-        await oauthAccessToken.save();
-
-        // Create token
-        const token = jwt.sign(
-          {
-            client_id: client.clientId,
-            scope: data.scope,
-            azp: client.clientId,
-          } as IJwtTokenPayload,
-          this.oauthParams.OAUTH_SECRET_KEY,
-          {
-            algorithm: this.oauthParams.OAUTH_JWT_ALGORITHM,
-            expiresIn: this.oauthParams.OAUTH_IMPLICIT_TOKEN_EXPIRE_IN,
-            issuer: OauthHelper.getFullUrl(req),
-            audience: client.clientId,
-            subject: userId,
-            jwtid: oauthAccessToken._id.toString(),
-          }
-        );
+        const tokens = await client.newAccessToken({
+          grant: "implicit",
+          oauthParams: this.oauthParams,
+          req: req,
+          scope: data.scope ?? "",
+          subject: userId,
+        });
 
         const authResponse = {
-          access_token: token,
-          token_type: "Bearer",
-          expires_in: this.oauthParams.OAUTH_ACCESS_TOKEN_EXPIRE_IN,
+          access_token: tokens.token,
+          token_type: this.oauthParams.OAUTH_TOKEN_TYPE,
+          expires_in: tokens.accessTokenExpireIn,
           state: data.state,
         } as IToken;
 
@@ -299,7 +242,7 @@ class OauthController {
         );
       } else {
         throw {
-          message: "Wizard! please how do you get here",
+          message: "Wizard! please how do you get here?",
         };
       }
     } catch (e) {
@@ -394,33 +337,18 @@ class OauthController {
       }
 
       /**
-       *
-       * Checking Scope validity
-       *
+       * Check scopes
+       * ****************
        */
-      if (data.scope && client.scope) {
-        const requestScopes = data.scope.split(" ");
-        const clientScopes = client.scope.split(" ");
-
-        let missingScopeFound = false;
-
-        for (const scope of requestScopes) {
-          if (!clientScopes.includes(scope)) {
-            missingScopeFound = true;
-            break;
-          }
-        }
-
-        if (missingScopeFound) {
-          throw {
-            status: HttpStatus.BadRequest,
-            data: {
-              error: "invalid_scope",
-              error_description:
-                "The requested scope is invalid, unknown, malformed, or exceeds the scope granted.",
-            } as ITokenError,
-          };
-        }
+      if (data.scope && !client.validateScope(data.scope)) {
+        throw {
+          status: HttpStatus.BadRequest,
+          data: {
+            error: "invalid_scope",
+            error_description:
+              "The requested scope is invalid, unknown, malformed, or exceeds the scope granted.",
+          } as ITokenError,
+        };
       }
 
       if (client.clientType === "confidential" && !data.client_secret) {

@@ -3,7 +3,7 @@ import { IOauthClient } from "../models/OauthClient";
 import { IOauthDefaults } from "../OauthDefaults";
 import IToken from "../interfaces/IToken";
 import HttpStatus from "../../../common/HttpStatus";
-import { Request, Response, request } from "express";
+import { Request, Response } from "express";
 import ITokenError from "../interfaces/ITokenError";
 import UtilsHelper from "./UtilsHelper";
 
@@ -25,21 +25,11 @@ class TokenGrantPasswordCredentialsHelper {
     oauthParams: IOauthDefaults
   ) {
     try {
-      /**
-       * Check scopes
-       * ****************
-       */
-      if (!client.validateScope(data.scope)) {
-        throw {
-          status: HttpStatus.BadRequest,
-          data: {
-            error: "invalid_scope",
-            error_description: "The request scope must be in client scope.",
-          } as ITokenError,
-        };
-      }
 
-      // Required parameters
+      /**
+       * Required parameters
+       * *********************************
+       */
       const requiredParameters = UtilsHelper.checkAttributes<ITokenRequest>(["username", "password"], data);
 
       if (requiredParameters.length != 0) {
@@ -75,6 +65,21 @@ class TokenGrantPasswordCredentialsHelper {
       }
 
       /**
+       * Check scopes
+       * ****************
+       */
+      const mergedScope = client.mergedScope(passwordGrantData.scope, data.scope);
+      if (!mergedScope) {
+        throw {
+          status: HttpStatus.BadRequest,
+          data: {
+            error: "invalid_scope",
+            error_description: "The request scope must be in client scope.",
+          } as ITokenError,
+        };
+      }
+
+      /**
        * Generate tokens
        * ******************************
        */
@@ -82,7 +87,7 @@ class TokenGrantPasswordCredentialsHelper {
         req: req,
         oauthParams: oauthParams,
         grant: "password",
-        scope: passwordGrantData.scope,
+        scope: mergedScope,
         subject: passwordGrantData.userId,
       });
 

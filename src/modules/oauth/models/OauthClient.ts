@@ -10,14 +10,22 @@ import OauthRefreshToken, { IOauthRefreshToken } from "./OauthRefreshToken";
 export type OauthClientType = "confidential" | "public";
 export type OauthClientProfileType = "web" | "user-agent-based" | "native";
 export type OauthClientGrantType =
+  | "implicit"
   | "client_credentials"
   | "password"
-  | "authorization_code"
-  | "refresh_token";
+  | "authorization_code";
 export type OauthTokenType = {
   token: string;
   accessTokenExpireIn: number;
   refreshToken?: string;
+};
+
+export type NewAccessTokenParamsType = {
+  req: Request;
+  oauthParams: IOauthDefaults;
+  grant: OauthClientGrantType;
+  scope: string;
+  subject: string;
 };
 
 export interface IOauthClient extends Document {
@@ -39,13 +47,11 @@ export interface IOauthClient extends Document {
   validateScope: (scope: String) => boolean;
   accessTokenExpiresIn: (oauthParams: IOauthDefaults) => number;
   refreshTokenExpiresIn: (oauthParams: IOauthDefaults) => number;
-  newAccessToken: (params: {
-    req: Request;
-    oauthParams: IOauthDefaults;
-    grant: OauthClientGrantType;
-    scope: string;
-    subject: string;
-  }) => Promise<OauthTokenType>;
+  newAccessToken: (params: NewAccessTokenParamsType) => Promise<OauthTokenType>;
+  mergedScope: (
+    subjectScope: string,
+    requestScope?: string
+  ) => string | undefined;
 }
 
 export default mongooseModel<IOauthClient>({
@@ -125,6 +131,25 @@ export default mongooseModel<IOauthClient>({
       },
       scope: {
         type: Schema.Types.String,
+        validate: [
+          {
+            validator: function (value: string) {
+              const self = this as IOauthClient;
+              return !(!self.internal && value === "*");
+            },
+            message: "* is not allowed as scope value for external client.",
+          },
+          {
+            validator: function (value: string) {
+              const self = this as IOauthClient;
+              return !(
+                !self.internal &&
+                (value === undefined || value === null || value.length === 0)
+              );
+            },
+            message: "Scope is required for external.",
+          },
+        ],
       },
       revokedAt: {
         type: Schema.Types.Date,
@@ -158,21 +183,21 @@ export default mongooseModel<IOauthClient>({
       switch (this.clientType) {
         case "public":
           if (this.internal) {
-            this.grants = ["authorization_code", "password"];
+            this.grants = ["implicit", "authorization_code", "password"];
           } else {
-            this.grants = ["authorization_code"];
+            this.grants = ["implicit", "authorization_code"];
           }
           break;
         case "confidential":
           if (this.internal) {
             this.grants = [
+              "implicit",
               "authorization_code",
               "password",
               "client_credentials",
-              "refresh_token",
             ];
           } else {
-            this.grants = ["authorization_code", "refresh_token"];
+            this.grants = ["implicit", "authorization_code"];
           }
           break;
       }
@@ -193,6 +218,14 @@ export default mongooseModel<IOauthClient>({
           message: "The redirect URIs value must be valid URLs.",
         };
       }
+
+      /**
+       * Default scope for internal clients
+       * **************************************
+       */
+      if (this.internal && !this.scope) {
+        this.scope = "*";
+      }
     });
 
     /**
@@ -202,14 +235,18 @@ export default mongooseModel<IOauthClient>({
       validateScope: function (scope: String): boolean {
         const self = this as IOauthClient;
         if (self.scope !== "*") {
-          const clientScopes = self.scope.split(" ");
-          const scopes = scope.split(" ");
-          for (const item of scopes) {
-            if (!clientScopes.includes(item)) {
-              return false;
+          if (scope === "*") {
+            return false;
+          } else {
+            const clientScopes = self.scope.split(" ");
+            const scopes = scope.split(" ");
+            for (const item of scopes) {
+              if (!clientScopes.includes(item)) {
+                return false;
+              }
             }
+            return true;
           }
-          return true;
         } else {
           return true;
         }
@@ -248,78 +285,135 @@ export default mongooseModel<IOauthClient>({
         }
         return oauthParams.refreshTokenExpiresIn.public.external;
       },
-      newAccessToken: async function (params: {
-        req: Request;
-        oauthParams: IOauthDefaults;
-        grant: OauthClientGrantType;
-        scope: string;
-        subject: string;
-      }): Promise<OauthTokenType> {
+      newAccessToken: async function (
+        params: NewAccessTokenParamsType
+      ): Promise<OauthTokenType> {
         const self = this as IOauthClient;
 
         /**
-         * Access token expires in
+         * Check client grants
+         * *********************************
          */
-        const accessTokenExpiresIn = self.accessTokenExpiresIn(params.oauthParams);
+        if (self.grants.includes(params.grant)) {
+          /**
+           * Access token expires in
+           */
+          const accessTokenExpiresIn = self.accessTokenExpiresIn(
+            params.oauthParams
+          );
 
-        /**
-         * Save access token data
-         */
-        const oauthAccessToken = await new OauthAccessToken({
-          userId: params.subject,
-          client: self._id,
-          name: self.name,
-          scope: params.scope,
-          expiresAt: moment().add(accessTokenExpiresIn, "seconds").toDate(),
-          userAgent: params.req.headers["user-agent"],
-        } as Partial<IOauthAccessToken>).save();
-
-        // return object
-        const r: OauthTokenType = {
-          token: OauthHelper.jwtSign(params.req, params.oauthParams, {
-            client_id: self.clientId,
+          /**
+           * Save access token data
+           */
+          const oauthAccessToken = await new OauthAccessToken({
+            userId: params.subject,
+            client: self._id,
+            name: self.name,
             scope: params.scope,
-            azp: self.domaine ?? self.clientId,
-            aud: self.domaine ?? self.clientId,
-            sub: params.subject,
-            jti: oauthAccessToken._id.toString(),
-            exp: oauthAccessToken.expiresAt.getTime(),
-          }),
-          accessTokenExpireIn: accessTokenExpiresIn,
-          refreshToken: undefined,
-        };
+            expiresAt: moment().add(accessTokenExpiresIn, "seconds").toDate(),
+            userAgent: params.req.headers["user-agent"],
+          } as Partial<IOauthAccessToken>).save();
 
-        if (
-          params.grant !== "client_credentials" &&
-          self.grants.includes("refresh_token")
-        ) {
-          /**
-           * Create and save refresh token data
-           * *********************************************
-           */
-          const oauthRefreshToken = await new OauthRefreshToken({
-            accessToken: oauthAccessToken._id,
-            expiresAt: moment()
-              .add(self.refreshTokenExpiresIn(params.oauthParams), "seconds")
-              .toDate(),
-          } as Partial<IOauthRefreshToken>).save();
+          // return object
+          const r: OauthTokenType = {
+            token: OauthHelper.jwtSign(params.req, params.oauthParams, {
+              client_id: self.clientId,
+              scope: params.scope,
+              azp: self.domaine ?? self.clientId,
+              aud: self.domaine ?? self.clientId,
+              sub: params.subject,
+              jti: oauthAccessToken._id.toString(),
+              exp: oauthAccessToken.expiresAt.getTime(),
+            }),
+            accessTokenExpireIn: accessTokenExpiresIn,
+            refreshToken: undefined,
+          };
 
           /**
-           * Refresh token
+           * REFRESH TOKEN
+           *
+           * Not allowed for client_credentials grant and implicit grant
+           * Only allowed for client with "refresh_token" in grants list
+           * ********************************************************************
            */
-          r.refreshToken = OauthHelper.jwtSign(params.req, params.oauthParams, {
-            client_id: self.clientId,
-            aud: self.domaine ?? self.clientId,
-            sub: params.subject,
-            jti: oauthRefreshToken._id.toString(),
-            exp: oauthRefreshToken.expiresAt.getTime(),
-          });
+          if (
+            !([
+              "client_credentials",
+              "implicit",
+            ] as OauthClientGrantType[]).includes(params.grant) &&
+            self.clientType === "confidential"
+          ) {
+            /**
+             * Create and save refresh token data
+             * *********************************************
+             */
+            const oauthRefreshToken = await new OauthRefreshToken({
+              accessToken: oauthAccessToken._id,
+              expiresAt: moment()
+                .add(self.refreshTokenExpiresIn(params.oauthParams), "seconds")
+                .toDate(),
+            } as Partial<IOauthRefreshToken>).save();
+
+            /**
+             * Refresh token
+             * **********************
+             */
+            r.refreshToken = OauthHelper.jwtSign(
+              params.req,
+              params.oauthParams,
+              {
+                client_id: self.clientId,
+                aud: self.domaine ?? self.clientId,
+                sub: params.subject,
+                jti: oauthRefreshToken._id.toString(),
+                exp: oauthRefreshToken.expiresAt.getTime(),
+              }
+            );
+          }
+
+          /**
+           * Return the token
+           */
+          return r;
+        } else {
+          throw {
+            message: `${params.grant} authorization grant type is not allowed for this client.`,
+          };
         }
+      },
+      mergedScope: function (
+        subjectScope: string,
+        requestScope?: string
+      ): string | undefined {
+        const self = this as IOauthClient;
 
         /**
-         * Return the token
+         * Scope exist in token request
          */
-        return r;
+        if (requestScope) {
+          if (self.validateScope(requestScope)) {
+            if (requestScope === "*") {
+              return subjectScope;
+            } else if (subjectScope === "*") {
+              return requestScope;
+            } else {
+              return OauthHelper.getMatchedScope(subjectScope, requestScope);
+            }
+          } else {
+            return undefined;
+          }
+        } else {
+          /**
+           * Scope does not exist in token request
+           */
+          if (self.scope === "*") {
+            return subjectScope;
+          } else if (subjectScope === "*") {
+            return self.scope;
+          } else {
+            return OauthHelper.getMatchedScope(subjectScope, self.scope);
+          }
+        }
       },
     };
   },

@@ -28,12 +28,14 @@ class TokenGrantClientCredentialsHelper {
        * Check scopes
        * ****************
        */
-      if (!client.validateScope(data.scope)) {
+      const mergedScope = client.mergedScope(client.scope, data.scope);
+      if (!mergedScope) {
         throw {
           status: HttpStatus.BadRequest,
           data: {
             error: "invalid_scope",
-            error_description: "The request scope must be in client scope.",
+            error_description:
+              "The requested scope is invalid, unknown, malformed, or exceeds the scope granted.",
           } as ITokenError,
         };
       }
@@ -60,7 +62,7 @@ class TokenGrantClientCredentialsHelper {
         req: req,
         oauthParams: oauthParams,
         grant: "client_credentials",
-        scope: data.scope,
+        scope: mergedScope,
         subject: client.clientId,
       });
 
