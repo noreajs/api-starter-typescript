@@ -17,7 +17,7 @@
   "license": "ISC",
   "dependencies": {
     "@noreajs/core": "^1.0.10",
-    "@noreajs/mongoose": "0.0.13-1",
+    "@noreajs/mongoose": "0.0.13-2",
     "axios": "^0.19.2",
     "body-parser": "^1.19.0",
     "cors": "^2.8.5",

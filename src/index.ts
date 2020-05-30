@@ -3,8 +3,8 @@ import socketIo from "socket.io";
 import bodyParser from 'body-parser';
 import cors from 'cors';
 import apiRoutes from './routes/api.routes';
-import MongodbContext from './config/mongodb/MongodbContext';
 import socketIoServer from "./config/socket.io/socket.io.server";
+import { MongoDBContext } from '@noreajs/mongoose';
 
 /**
  * Norea.Js app initialization
@@ -19,7 +19,9 @@ const app = new NoreaApp(apiRoutes, {
         //support application/x-www-form-urlencoded post data
         app.use(bodyParser.urlencoded({ extended: false }));
         // Get MongoDB Instance
-        MongodbContext.init();
+        MongoDBContext.init({
+            connectionUrl: `${process.env.MONGODB_URI}`,
+        });
         // set the view engine to ejs
         app.set('view engine', 'ejs');
     },

@@ -13,6 +13,7 @@ import IToken from "../interfaces/IToken";
 import ITokenError from "../interfaces/ITokenError";
 import IAuthorizationResponse from "../interfaces/IAuthorizationResponse";
 import UtilsHelper from "../helpers/UtilsHelper";
+import path from 'path';
 
 class AuthorizationController {
   oauthParams: IOauthDefaults;
@@ -20,6 +21,90 @@ class AuthorizationController {
   constructor() {
     this.oauthParams = OauthDefaults;
   }
+
+  /**
+   * Get authorization dialog
+   * @param req request
+   * @param res response
+   */
+  dialog = async (req: Request, res: Response) => {
+    // login path
+    const authLoginPath = path.join(
+      __dirname,
+      "..",
+      "views",
+      "pages",
+      "auth-login.ejs"
+    );
+
+    // request payload
+    const payload = JSON.parse(
+      Buffer.from(req.query.p, "base64").toString("ascii")
+    ) as {
+      oauthAuthCodeId: string;
+      order?: "cancel";
+      inputs?: {
+        [key: string]: string;
+      };
+      error?: {
+        message: string;
+        errors: {
+          [key: string]: string;
+        };
+      };
+    };
+
+    // load auth code
+    const oauthCode = await OauthAuthCode.findById(payload.oauthAuthCodeId);
+
+    // load scopes
+    if (oauthCode) {
+      /**
+       * Authentification cancelled
+       * ******************************
+       */
+      if (payload.order === "cancel") {
+        return res.redirect(
+          UrlHelper.injectQueryParams(oauthCode.redirectUri, {
+            error: "access_denied",
+            error_description: "The resource owner denied the request.",
+            state: oauthCode.state,
+          } as IAuthorizationErrorResponse)
+        );
+      } else {
+        return res.render(authLoginPath, {
+          providerName: this.oauthParams.providerName,
+          currentYear: new Date().getFullYear(),
+          oauthAuthCodeId: oauthCode._id,
+          formAction: `${UrlHelper.getFullUrl(req)}/oauth/authorize`,
+          cancelUrl: `${UrlHelper.getFullUrl(req)}/oauth/dialog?p=${Buffer.from(
+            JSON.stringify({ oauthAuthCodeId: oauthCode._id, order: "cancel" })
+          ).toString("base64")}`,
+          error: payload.error,
+          inputs: payload.inputs ?? {
+            username: "",
+            password: "",
+          },
+          client: {
+            name: oauthCode.client.name,
+            domaine: oauthCode.client.domaine,
+            logo: oauthCode.client.logo,
+            description: oauthCode.client.description,
+            internal: oauthCode.client.internal,
+            clientType: oauthCode.client.clientType,
+            clientProfile: oauthCode.client.clientProfile,
+            scope: oauthCode.client.scope,
+          } as Partial<IOauthClient>,
+        });
+      }
+    } else {
+      return res.status(HttpStatus.BadRequest).json({
+        error: "server_error",
+        error_description:
+          "The authorization server encountered an unexpected condition that prevented it from fulfilling the request.",
+      } as IAuthorizationErrorResponse);
+    }
+  };
 
   /**
    * Get authorization token

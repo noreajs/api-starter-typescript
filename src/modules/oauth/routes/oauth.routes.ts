@@ -1,11 +1,12 @@
 import { Application } from "express";
 import { group } from "@noreajs/core";
 import oauthController from "../controllers/oauth.controller";
-import oauthClientController from "../controllers/oauth-client.controller";
-import oauthMiddleware from "../middlewares/oauth.middleware";
-import authorizationController from "../controllers/authorization.controller";
+import oauthClientRoutes from "./oauth-client.routes";
+import authorizationRoutes from "./authorization.routes";
+import accessTokenRoutes from "./access-token.routes";
 
 export default (app: Application) => {
+
   /**
    * Auth routes
    */
@@ -13,67 +14,19 @@ export default (app: Application) => {
     "/oauth",
     group([], (g) => {
       /**
-       * Get all clients
+       * Clients routes
        */
-      g.route("/clients").get([oauthClientController.all]);
+      oauthClientRoutes(g);
 
       /**
-       * Create client
+       * Authorization routes
        */
-      g.route("/clients").post([oauthClientController.create]);
-
+      authorizationRoutes(g);
+      
       /**
-       * Show client
+       * Access tokens routes
        */
-      g.route("/clients/:id").get([oauthClientController.show]);
-
-      /**
-       * Edit client
-       */
-      g.route("/clients/:id").put([oauthClientController.edit]);
-
-      /**
-       * Delete client
-       */
-      g.route("/clients/:id").delete([oauthClientController.delete]);
-
-      /**
-       * Get authorization dialog
-       */
-      g.route("/dialog").get([oauthController.dialog]);
-
-      /**
-       * Authorize
-       */
-      g.route("/authorize").get([
-        oauthMiddleware.validAuthorizationRequestRequired,
-        authorizationController.authorize,
-      ]);
-
-      /**
-       * Authenticate the user
-       */
-      g.route("/authorize").post([authorizationController.authenticate]);
-
-      /**
-       * Get token
-       */
-      g.route("/token").post([oauthController.token]);
-
-      /**
-       * Get token info
-       */
-      g.route("/tokeninfo").post([oauthController.inspect]);
-
-      /**
-       * Get user info
-       */
-      g.route("/userinfo").post([oauthController.inspect]);
-
-      /**
-       * Purge revoked and expired token
-       */
-      g.route("/token/purge").post([oauthController.purge]);
+      accessTokenRoutes(g);
 
       /**
        * Get token

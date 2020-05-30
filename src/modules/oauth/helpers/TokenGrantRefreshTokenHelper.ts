@@ -175,7 +175,7 @@ class TokenGrantRefreshTokenHelper {
 
               // access token expires at
               const accessTokenExpiresAt = moment()
-                .add(oauthParams.OAUTH_ACCESS_TOKEN_EXPIRE_IN, "seconds")
+                .add(oauthParams.accessTokenExpiresIn.public.external, "seconds")
                 .toDate();
 
               /**
@@ -228,7 +228,7 @@ class TokenGrantRefreshTokenHelper {
               return res.status(HttpStatus.Ok).json({
                 access_token: token,
                 token_type: oauthParams.OAUTH_TOKEN_TYPE,
-                expires_in: oauthParams.OAUTH_ACCESS_TOKEN_EXPIRE_IN,
+                expires_in: oauthParams.refreshTokenExpiresIn.public.external,
                 refresh_token: data.refresh_token,
               } as IToken);
             }

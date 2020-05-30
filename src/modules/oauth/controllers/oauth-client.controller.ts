@@ -88,7 +88,7 @@ class OauthClientController {
           logo: req.body.logo || client.logo,
           programmingLanguage:
             req.body.programmingLanguage || client.programmingLanguage,
-          scope: req.body.scope,
+          scope: req.body.scope || client.scope,
           internal:
             req.body.internal !== undefined
               ? req.body.internal

@@ -138,6 +138,7 @@ export default mongooseModel<IOauthClient>({
       },
       scope: {
         type: Schema.Types.String,
+        required: [true, 'The scope is required.'],
         validate: [
           {
             validator: function (value: string) {
@@ -145,16 +146,6 @@ export default mongooseModel<IOauthClient>({
               return !(!self.internal && value === "*");
             },
             message: "* is not allowed as scope value for external client.",
-          },
-          {
-            validator: function (value: string) {
-              const self = this as IOauthClient;
-              return !(
-                !self.internal &&
-                (value === undefined || value === null || value.length === 0)
-              );
-            },
-            message: "Scope is required for external.",
           },
         ],
       },
@@ -343,12 +334,12 @@ export default mongooseModel<IOauthClient>({
       }
     },
   },
-  externalConfig: function (sc: Schema) {
+  externalConfig: function (sc) {
     /**
      * Before save
      * ******************************
      */
-    sc.pre<IOauthClient>("save", function (next: HookNextFunction) {
+    sc.pre<IOauthClient>("validate", function (next: HookNextFunction) {
       /**
        * Secret code availability
        * **********************
