@@ -1,10 +1,11 @@
 import crypto from "crypto";
-import { Request } from "express";
+import { Request, Response } from "express";
 import { IOauthDefaults } from "../OauthDefaults";
 import IJwtTokenPayload from "../interfaces/IJwtTokenPayload";
-import { SignOptions, sign } from "jsonwebtoken";
-import { IOauthClient } from "../models/OauthClient";
+import { sign } from "jsonwebtoken";
 import UrlHelper from "./UrlHelper";
+import HttpStatus from "../../../common/HttpStatus";
+import IOauthError from "../interfaces/IOauthError";
 
 class OauthHelper {
   /**
@@ -52,6 +53,31 @@ class OauthHelper {
       algorithm: oauthParams.OAUTH_JWT_ALGORITHM,
       issuer: UrlHelper.getFullUrl(req),
     });
+  }
+
+  throwError(
+    res: Response,
+    error: IOauthError,
+    redirectUri?: string
+  ) {
+    // 400 Bad Request status by default
+    let status:number = HttpStatus.BadRequest;
+
+    // special status
+    switch(error.error){
+      case "invalid_client":
+        status = HttpStatus.Unauthorized;
+        break;
+    }
+
+    /**
+     * Redirect if needed
+     */
+    if (redirectUri) {
+      return res.redirect(UrlHelper.injectQueryParams(redirectUri, error));
+    } else {
+      return res.status(status).json(error);
+    }
   }
 }
 

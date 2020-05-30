@@ -4,7 +4,7 @@ import { IOauthDefaults } from "../OauthDefaults";
 import IToken from "../interfaces/IToken";
 import HttpStatus from "../../../common/HttpStatus";
 import { Request, Response } from "express";
-import ITokenError from "../interfaces/ITokenError";
+import IOauthError from "../interfaces/IOauthError";
 import UtilsHelper from "./UtilsHelper";
 
 class TokenGrantPasswordCredentialsHelper {
@@ -41,7 +41,7 @@ class TokenGrantPasswordCredentialsHelper {
             error_description: `${requiredParameters.join(", ")} ${
               requiredParameters.length > 1 ? "are required" : "is required"
             }`,
-          } as ITokenError,
+          } as IOauthError,
         };
       }
 
@@ -60,7 +60,7 @@ class TokenGrantPasswordCredentialsHelper {
           data: {
             error: "invalid_grant",
             error_description: `Given credentials are not valid or do not match any record.`,
-          } as ITokenError,
+          } as IOauthError,
         };
       }
 
@@ -75,7 +75,7 @@ class TokenGrantPasswordCredentialsHelper {
           data: {
             error: "invalid_scope",
             error_description: "The request scope must be in client scope.",
-          } as ITokenError,
+          } as IOauthError,
         };
       }
 
@@ -108,7 +108,7 @@ class TokenGrantPasswordCredentialsHelper {
           error: "server_error",
           error_description:
             "The authorization server encountered an unexpected condition that prevented it from fulfilling the request.",
-        } as ITokenError);
+        } as IOauthError);
       }
     }
   }

@@ -4,7 +4,7 @@ import jwt from "jsonwebtoken";
 import { IOauthClient } from "../models/OauthClient";
 import { IOauthDefaults } from "../OauthDefaults";
 import HttpStatus from "../../../common/HttpStatus";
-import ITokenError from "../interfaces/ITokenError";
+import IOauthError from "../interfaces/IOauthError";
 import OauthRefreshToken from "../models/OauthRefreshToken";
 import OauthAccessToken, {
   IOauthAccessToken,
@@ -38,225 +38,185 @@ class TokenGrantRefreshTokenHelper {
        * ****************
        */
       if (!client.validateScope(data.scope)) {
-        throw {
-          status: HttpStatus.BadRequest,
-          data: {
-            error: "invalid_scope",
-            error_description: "The request scope must be in client scope.",
-          } as ITokenError,
-        };
+        return OauthHelper.throwError(res, {
+          error: "invalid_scope",
+          error_description: "The request scope must be in client scope.",
+        });
       }
 
       /**
        * REFRESH TOKEN VERIFICATION
        * *******************************
        */
-      
+
       // Check if refresh token is within the request
-      if (UtilsHelper.checkAttributes<ITokenRequest>(["refresh_token"], data).length !== 0) {
-        throw {
-          status: HttpStatus.BadRequest,
-          redirect: false,
-          data: {
-            error: "invalid_request",
-            error_description: `refresh_token is required.`,
-          } as ITokenError,
-        };
+      if (
+        UtilsHelper.checkAttributes<ITokenRequest>(["refresh_token"], data)
+          .length !== 0
+      ) {
+        return OauthHelper.throwError(res, {
+          error: "invalid_request",
+          error_description: `refresh_token is required.`,
+        });
       }
 
       /**
        * Get refresh token data
        * *******************************
        */
-      await jwt.verify(
-        data.refresh_token,
-        oauthParams.OAUTH_SECRET_KEY,
-        {
-          algorithms: [oauthParams.OAUTH_JWT_ALGORITHM],
-        },
-        async (error, refreshTokenData: IJwtTokenPayload) => {
-          try {
-            if (error) {
-              /**
-               * Invalid signature
-               */
-              throw {
-                status: HttpStatus.BadRequest,
-                data: {
-                  error: "invalid_grant",
-                  error_description: error.message,
-                } as ITokenError,
-              };
+      try {
+        // Verify token signature
+        const refreshTokenData = jwt.verify(
+          data.refresh_token,
+          oauthParams.OAUTH_SECRET_KEY,
+          {
+            algorithms: [oauthParams.OAUTH_JWT_ALGORITHM],
+          }
+        ) as IJwtTokenPayload;
+
+        // load refresh token
+        const oauthRefreshToken = await OauthRefreshToken.findOne({
+          _id: refreshTokenData.jti,
+        });
+
+        // refresh token doesn't exist
+        if (!oauthRefreshToken) {
+          return OauthHelper.throwError(res, {
+            error: "invalid_grant",
+            error_description: `Unknown refresh token.`,
+          });
+        }
+
+        // refresh token expired
+        if (moment().isAfter(oauthRefreshToken.expiresAt)) {
+          return OauthHelper.throwError(res, {
+            error: "invalid_grant",
+            error_description: `The refresh token is expired.`,
+          });
+        }
+
+        // refresh token revoked
+        if (oauthRefreshToken.revokedAt) {
+          return OauthHelper.throwError(res, {
+            error: "invalid_grant",
+            error_description: `The refresh token is revoked.`,
+          });
+        }
+
+        /**
+         * Verify client_id
+         * *******************************
+         */
+        if (data.client_id !== refreshTokenData.client_id) {
+          return OauthHelper.throwError(res, {
+            error: "invalid_grant",
+            error_description: `Invalid refresh token. client_id does not match.`,
+          });
+        }
+
+        /**
+         * Verify scope
+         * *******************************
+         */
+
+        // new access token scope, identical with the previous by default
+        let newAccessTokenScope = oauthRefreshToken.accessToken.scope;
+
+        if (data.scope && newAccessTokenScope) {
+          const currentScopes = newAccessTokenScope.split(" ");
+          const newScopes = data.scope.split(" ");
+          for (const scope of newScopes) {
+            if (currentScopes.includes(scope)) {
+              return OauthHelper.throwError(res, {
+                error: "invalid_scope",
+                error_description: `${scope} is already in the previous access token scope.`,
+              });
             } else {
-              // load refresh token
-              const oauthRefreshToken = await OauthRefreshToken.findOne({
-                _id: refreshTokenData.jti,
-              });
-
-              // refresh token doesn't exist
-              if (!oauthRefreshToken) {
-                throw {
-                  status: HttpStatus.BadRequest,
-                  data: {
-                    error: "invalid_grant",
-                    error_description: `Unknown refresh token.`,
-                  } as ITokenError,
-                };
-              }
-
-              // refresh token expired
-              if (moment().isAfter(oauthRefreshToken.expiresAt)) {
-                throw {
-                  status: HttpStatus.BadRequest,
-                  data: {
-                    error: "invalid_grant",
-                    error_description: `The refresh token is expired.`,
-                  } as ITokenError,
-                };
-              }
-
-              // refresh token revoked
-              if (oauthRefreshToken.revokedAt) {
-                throw {
-                  status: HttpStatus.BadRequest,
-                  data: {
-                    error: "invalid_grant",
-                    error_description: `The refresh token is revoked.`,
-                  } as ITokenError,
-                };
-              }
-
-              /**
-               * Verify client_id
-               * *******************************
-               */
-              if (data.client_id !== refreshTokenData.client_id) {
-                throw {
-                  status: HttpStatus.BadRequest,
-                  data: {
-                    error: "invalid_grant",
-                    error_description: `Invalid refresh token. client_id does not match.`,
-                  } as ITokenError,
-                };
-              }
-
-              /**
-               * Verify scope
-               * *******************************
-               */
-
-              // new access token scope, identical with the previous by default
-              let newAccessTokenScope = oauthRefreshToken.accessToken.scope;
-
-              if (data.scope && newAccessTokenScope) {
-                const currentScopes = newAccessTokenScope.split(" ");
-                const newScopes = data.scope.split(" ");
-                for (const scope of newScopes) {
-                  if (currentScopes.includes(scope)) {
-                    throw {
-                      status: HttpStatus.BadRequest,
-                      data: {
-                        error: "invalid_scope",
-                        error_description: `${scope} is already in the previous access token scope.`,
-                      } as ITokenError,
-                    };
-                  } else {
-                    currentScopes.push(scope);
-                  }
-                }
-                // update new access token scope
-                newAccessTokenScope = currentScopes.join(" ");
-              }
-
-              /**
-               * ACCESS TOKEN AND REFRESH_TOKEN
-               * *******************************************
-               */
-
-              // access token expires at
-              const accessTokenExpiresAt = moment()
-                .add(oauthParams.accessTokenExpiresIn.public.external, "seconds")
-                .toDate();
-
-              /**
-               * Update and save oauth access token data
-               */
-              await OauthAccessToken.updateOne(
-                {
-                  _id: oauthRefreshToken.accessToken._id,
-                },
-                {
-                  scope: newAccessTokenScope,
-                  expiresAt: accessTokenExpiresAt,
-                } as Partial<IOauthAccessToken>
-              );
-
-              /**
-               * Save refresh attempts
-               * *********************************************
-               */
-              const attemps = oauthRefreshToken.attemps ?? [];
-              attemps.push({
-                ip: req.ip,
-                userAgent: req.headers["user-agent"],
-                attemptedAt: new Date(),
-              });
-
-              await OauthRefreshToken.updateOne(
-                {
-                  _id: oauthRefreshToken._id,
-                },
-                {
-                  attemps: attemps,
-                } as Partial<IOauthAccessToken>
-              );
-
-              /**
-               * Create JWT token
-               * ******************************
-               */
-              const token = OauthHelper.jwtSign(req, oauthParams, {
-                client_id: client.clientId,
-                scope: newAccessTokenScope,
-                azp: client.clientId,
-                aud: client.clientId,
-                sub: oauthRefreshToken.accessToken.userId,
-                jti: oauthRefreshToken.accessToken._id.toString(),
-                exp: accessTokenExpiresAt.getTime(),
-              });
-
-              return res.status(HttpStatus.Ok).json({
-                access_token: token,
-                token_type: oauthParams.OAUTH_TOKEN_TYPE,
-                expires_in: oauthParams.refreshTokenExpiresIn.public.external,
-                refresh_token: data.refresh_token,
-              } as IToken);
-            }
-          } catch (error) {
-            if (error.status) {
-              return res.status(error.status).json(error.data);
-            } else {
-              console.log(error);
-              return res.status(HttpStatus.BadRequest).json({
-                error: "server_error",
-                error_description:
-                  "The authorization server encountered an unexpected condition that prevented it from fulfilling the request.",
-              } as ITokenError);
+              currentScopes.push(scope);
             }
           }
+          // update new access token scope
+          newAccessTokenScope = currentScopes.join(" ");
         }
-      );
-    } catch (error) {
-      if (error.status) {
-        return res.status(error.status).json(error.data);
-      } else {
-        console.log(error);
-        return res.status(HttpStatus.BadRequest).json({
-          error: "server_error",
-          error_description:
-            "The authorization server encountered an unexpected condition that prevented it from fulfilling the request.",
-        } as ITokenError);
+
+        /**
+         * ACCESS TOKEN AND REFRESH_TOKEN
+         * *******************************************
+         */
+
+        // access token expires at
+        const accessTokenExpiresAt = moment()
+          .add(oauthParams.accessTokenExpiresIn.public.external, "seconds")
+          .toDate();
+
+        /**
+         * Update and save oauth access token data
+         */
+        await OauthAccessToken.updateOne(
+          {
+            _id: oauthRefreshToken.accessToken._id,
+          },
+          {
+            scope: newAccessTokenScope,
+            expiresAt: accessTokenExpiresAt,
+          } as Partial<IOauthAccessToken>
+        );
+
+        /**
+         * Save refresh attempts
+         * *********************************************
+         */
+        const attemps = oauthRefreshToken.attemps ?? [];
+        attemps.push({
+          ip: req.ip,
+          userAgent: req.headers["user-agent"],
+          attemptedAt: new Date(),
+        });
+
+        await OauthRefreshToken.updateOne(
+          {
+            _id: oauthRefreshToken._id,
+          },
+          {
+            attemps: attemps,
+          } as Partial<IOauthAccessToken>
+        );
+
+        /**
+         * Create JWT token
+         * ******************************
+         */
+        const token = OauthHelper.jwtSign(req, oauthParams, {
+          client_id: client.clientId,
+          scope: newAccessTokenScope,
+          azp: client.clientId,
+          aud: client.clientId,
+          sub: oauthRefreshToken.accessToken.userId,
+          jti: oauthRefreshToken.accessToken._id.toString(),
+          exp: accessTokenExpiresAt.getTime(),
+        });
+
+        return res.status(HttpStatus.Ok).json({
+          access_token: token,
+          token_type: oauthParams.OAUTH_TOKEN_TYPE,
+          expires_in: oauthParams.refreshTokenExpiresIn.public.external,
+          refresh_token: data.refresh_token,
+        } as IToken);
+      } catch (error) {
+        /**
+         * Invalid signature
+         */
+        return OauthHelper.throwError(res, {
+          error: "invalid_grant",
+          error_description: error.message,
+        });
       }
+    } catch (error) {
+      return OauthHelper.throwError(res, {
+        error: "server_error",
+        error_description:
+          "The authorization server encountered an unexpected condition that prevented it from fulfilling the request.",
+      });
     }
   }
 }

@@ -1,8 +1,8 @@
 import IOauthErrorType from "./IOauthErrorType";
 
-export default interface IAuthorizationErrorResponse {
+export default interface IOauthError {
   error: IOauthErrorType;
-  error_description: string;
+  error_description?: string;
   error_uri?: string;
   state?: string;
 }

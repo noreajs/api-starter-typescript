@@ -154,7 +154,7 @@ export default mongooseModel<IOauthClient>({
       },
     },
     {
-      timestamps: true, // automatically add createdAt and updatedAt (discover)
+      timestamps: true,
     }
   ),
   methods: {

@@ -3,17 +3,17 @@ import { Request, Response } from "express";
 import IAuthCodeRequest from "../interfaces/IAuthCodeRequest";
 import { IOauthClient } from "../models/OauthClient";
 import HttpStatus from "../../../common/HttpStatus";
-import IAuthorizationErrorResponse from "../interfaces/IAuthorizationErrorResponse";
 import UrlHelper from "../helpers/UrlHelper";
 import OauthAuthCode, { IOauthAuthCode } from "../models/OauthAuthCode";
 import moment from "moment";
 import { v4 as uuidV4 } from "uuid";
 import { suid } from "rand-token";
 import IToken from "../interfaces/IToken";
-import ITokenError from "../interfaces/ITokenError";
+import IOauthError from "../interfaces/IOauthError";
 import IAuthorizationResponse from "../interfaces/IAuthorizationResponse";
 import UtilsHelper from "../helpers/UtilsHelper";
-import path from 'path';
+import path from "path";
+import OauthHelper from "../helpers/OauthHelper";
 
 class AuthorizationController {
   oauthParams: IOauthDefaults;
@@ -64,12 +64,14 @@ class AuthorizationController {
        * ******************************
        */
       if (payload.order === "cancel") {
-        return res.redirect(
-          UrlHelper.injectQueryParams(oauthCode.redirectUri, {
+        return OauthHelper.throwError(
+          res,
+          {
             error: "access_denied",
             error_description: "The resource owner denied the request.",
             state: oauthCode.state,
-          } as IAuthorizationErrorResponse)
+          },
+          oauthCode.redirectUri
         );
       } else {
         return res.render(authLoginPath, {
@@ -98,11 +100,11 @@ class AuthorizationController {
         });
       }
     } else {
-      return res.status(HttpStatus.BadRequest).json({
+      return OauthHelper.throwError(res, {
         error: "server_error",
         error_description:
           "The authorization server encountered an unexpected condition that prevented it from fulfilling the request.",
-      } as IAuthorizationErrorResponse);
+      });
     }
   };
 
@@ -123,15 +125,16 @@ class AuthorizationController {
        * *****************************
        */
       if (!["code", "token"].includes(data.response_type)) {
-        throw {
-          status: HttpStatus.BadRequest,
-          data: {
+        return OauthHelper.throwError(
+          res,
+          {
             error: "unsupported_response_type",
             error_description:
               "Expected value for response_type are 'token' and 'code'",
             state: data.state,
-          } as IAuthorizationErrorResponse,
-        };
+          },
+          data.redirect_uri
+        );
       }
 
       /**
@@ -163,23 +166,13 @@ class AuthorizationController {
         ).toString("base64")}`
       );
     } catch (e) {
-      if (e.status) {
-        if (e.redirect !== false) {
-          return res.redirect(
-            UrlHelper.injectQueryParams(data.redirect_uri, e.data)
-          );
-        } else {
-          return res.status(e.status).json(e.data);
-        }
-      } else {
-        console.log(e);
-        return res.status(HttpStatus.BadRequest).json({
-          error: "server_error",
-          error_description:
-            "The authorization server encountered an unexpected condition that prevented it from fulfilling the request.",
-          state: data.state,
-        } as IAuthorizationErrorResponse);
-      }
+      console.log(e);
+      return OauthHelper.throwError(res, {
+        error: "server_error",
+        error_description:
+          "The authorization server encountered an unexpected condition that prevented it from fulfilling the request.",
+        state: data.state,
+      });
     }
   };
 
@@ -254,13 +247,14 @@ class AuthorizationController {
           oauthCode.scope
         );
         if (!mergedScope) {
-          throw {
-            status: HttpStatus.BadRequest,
-            data: {
+          return OauthHelper.throwError(
+            res,
+            {
               error: "invalid_scope",
               error_description: "The request scope must be in client scope.",
-            } as ITokenError,
-          };
+            },
+            oauthCode.redirectUri
+          );
         }
 
         /**
@@ -282,7 +276,9 @@ class AuthorizationController {
           } as Partial<IOauthAuthCode>
         );
 
-        // check response type
+        /**
+         * Authorization code
+         */
         if (oauthCode.responseType === "code") {
           const authResponse = {
             code: authorizationCode,
@@ -292,6 +288,9 @@ class AuthorizationController {
             UrlHelper.injectQueryParams(oauthCode.redirectUri, authResponse)
           );
         } else if (oauthCode.responseType === "token") {
+          /**
+           * Implicit Grant
+           */
           // user id
           const userId = uuidV4();
 
@@ -314,34 +313,31 @@ class AuthorizationController {
             UrlHelper.injectQueryParams(oauthCode.redirectUri, authResponse)
           );
         } else {
-          throw {
-            message: "Wizard! please how do you get here?",
-          };
+          /**
+           * Unsupported response type
+           */
+          return OauthHelper.throwError(
+            res,
+            {
+              error: "unsupported_response_type",
+            },
+            oauthCode.redirectUri
+          );
         }
       } catch (e) {
-        if (e.status) {
-          if (e.redirect !== false) {
-            return res.redirect(
-              UrlHelper.injectQueryParams(oauthCode.redirectUri, e.data)
-            );
-          } else {
-            return res.status(e.status).json(e.data);
-          }
-        } else {
-          console.log(e);
-          return res.status(HttpStatus.BadRequest).json({
-            error: "server_error",
-            error_description:
-              "The authorization server encountered an unexpected condition that prevented it from fulfilling the request.",
-            state: oauthCode.state,
-          } as IAuthorizationErrorResponse);
-        }
+        console.log("e");
+        return OauthHelper.throwError(res, {
+          error: "server_error",
+          error_description:
+            "The authorization server encountered an unexpected condition that prevented it from fulfilling the request.",
+          state: oauthCode.state,
+        });
       }
     } else {
-      return res.status(HttpStatus.BadRequest).json({
+      return OauthHelper.throwError(res, {
         error: "access_denied",
         error_description: "Request denied. Data is corrupt.",
-      } as IAuthorizationErrorResponse);
+      });
     }
   };
 }

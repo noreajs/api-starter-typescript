@@ -7,7 +7,7 @@ import OauthAuthCode from "../models/OauthAuthCode";
 import moment from "moment";
 import ITokenRequest from "../interfaces/ITokenRequest";
 import { toASCII } from "punycode";
-import ITokenError from "../interfaces/ITokenError";
+import IOauthError from "../interfaces/IOauthError";
 import { IOauthClient } from "../models/OauthClient";
 
 class TokenGrantAuthorizationCodeHelper {
@@ -47,7 +47,7 @@ class TokenGrantAuthorizationCodeHelper {
               error: "invalid_grant",
               error_description:
                 "The authorization code has been expired. Try to get another one.",
-            } as ITokenError,
+            } as IOauthError,
           };
         } else if (oauthCode.revokedAt) {
           throw {
@@ -56,7 +56,7 @@ class TokenGrantAuthorizationCodeHelper {
               error: "invalid_grant",
               error_description:
                 "The authorization code has been revoked. Try to get another one.",
-            } as ITokenError,
+            } as IOauthError,
           };
         } else {
           /**
@@ -68,7 +68,7 @@ class TokenGrantAuthorizationCodeHelper {
               data: {
                 error: "invalid_grant",
                 error_description: `The redirect_uri parameter must be identical to the one included in the authorization request.`,
-              } as ITokenError,
+              } as IOauthError,
             };
           }
 
@@ -82,7 +82,7 @@ class TokenGrantAuthorizationCodeHelper {
                 data: {
                   error: "invalid_request",
                   error_description: `The "code_verifier" is required.`,
-                } as ITokenError,
+                } as IOauthError,
               };
             } else {
               switch (oauthCode.codeChallengeMethod) {
@@ -93,7 +93,7 @@ class TokenGrantAuthorizationCodeHelper {
                       data: {
                         error: "invalid_grant",
                         error_description: `Code verifier and code challenge are not identical.`,
-                      } as ITokenError,
+                      } as IOauthError,
                     };
                   }
                   break;
@@ -113,7 +113,7 @@ class TokenGrantAuthorizationCodeHelper {
                       data: {
                         error: "invalid_grant",
                         error_description: `Hashed code verifier and code challenge are not identical.`,
-                      } as ITokenError,
+                      } as IOauthError,
                     };
                   }
 
@@ -147,7 +147,7 @@ class TokenGrantAuthorizationCodeHelper {
           data: {
             error: "invalid_grant",
             error_description: `The authorization code is not valid.`,
-          } as ITokenError,
+          } as IOauthError,
         };
       }
     } catch (error) {
@@ -159,7 +159,7 @@ class TokenGrantAuthorizationCodeHelper {
           error: "server_error",
           error_description:
             "The authorization server encountered an unexpected condition that prevented it from fulfilling the request.",
-        } as ITokenError);
+        } as IOauthError);
       }
     }
   }

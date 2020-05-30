@@ -4,7 +4,7 @@ import { IOauthDefaults } from "../OauthDefaults";
 import IToken from "../interfaces/IToken";
 import { Request, Response } from "express";
 import HttpStatus from "../../../common/HttpStatus";
-import ITokenError from "../interfaces/ITokenError";
+import IOauthError from "../interfaces/IOauthError";
 
 class TokenGrantClientCredentialsHelper {
   /**
@@ -36,7 +36,7 @@ class TokenGrantClientCredentialsHelper {
             error: "invalid_scope",
             error_description:
               "The requested scope is invalid, unknown, malformed, or exceeds the scope granted.",
-          } as ITokenError,
+          } as IOauthError,
         };
       }
 
@@ -50,7 +50,7 @@ class TokenGrantClientCredentialsHelper {
             error: "unauthorized_client",
             error_description:
               "The authenticated client is not authorized to use this authorization grant type.",
-          } as ITokenError,
+          } as IOauthError,
         };
       }
 
@@ -80,7 +80,7 @@ class TokenGrantClientCredentialsHelper {
           error: "server_error",
           error_description:
             "The authorization server encountered an unexpected condition that prevented it from fulfilling the request.",
-        } as ITokenError);
+        } as IOauthError);
       }
     }
   }

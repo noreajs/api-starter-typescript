@@ -1,6 +1,6 @@
 import authorizationController from "../controllers/authorization.controller";
-import oauthMiddleware from "../middlewares/oauth.middleware";
 import { NoreaRouter } from "@noreajs/core";
+import authorizationMiddleware from "../middlewares/authorization.middleware";
 
 export default (module: NoreaRouter) => {
   /**
@@ -14,7 +14,7 @@ export default (module: NoreaRouter) => {
   module
     .route("/authorize")
     .get([
-      oauthMiddleware.validAuthorizationRequestRequired,
+      authorizationMiddleware.validRequestRequired,
       authorizationController.authorize,
     ]);
 

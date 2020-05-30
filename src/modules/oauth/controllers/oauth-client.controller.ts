@@ -78,7 +78,7 @@ class OauthClientController {
   async edit(req: Request, res: Response) {
     try {
       // load client
-      const client = await OauthClient.findById(req.params.id);
+      const client = await OauthClient.findById(req.params.clientId);
 
       if (client) {
         // apply changes
@@ -126,7 +126,7 @@ class OauthClientController {
   async show(req: Request, res: Response) {
     try {
       // load client
-      const client = await OauthClient.findById(req.params.id);
+      const client = await OauthClient.findById(req.params.clientId);
 
       if (client) {
         return res.status(HttpStatus.Ok).json(client);
@@ -146,7 +146,7 @@ class OauthClientController {
   async delete(req: Request, res: Response) {
     try {
       // load client
-      const client = await OauthClient.findById(req.params.id);
+      const client = await OauthClient.findById(req.params.clientId);
 
       if (client) {
         // remove the client

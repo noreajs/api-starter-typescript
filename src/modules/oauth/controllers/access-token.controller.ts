@@ -3,7 +3,7 @@ import { Request, Response } from "express";
 import ITokenRequest from "../interfaces/ITokenRequest";
 import OauthHelper from "../helpers/OauthHelper";
 import HttpStatus from "../../../common/HttpStatus";
-import ITokenError from "../interfaces/ITokenError";
+import IOauthError from "../interfaces/IOauthError";
 import OauthClient from "../models/OauthClient";
 import TokenGrantAuthorizationCodeHelper from "../helpers/TokenGrantAuthorizationCodeHelper";
 import TokenGrantClientCredentialsHelper from "../helpers/TokenGrantClientCredentialsHelper";
@@ -43,7 +43,7 @@ class AccessTokenController {
             error: "invalid_request",
             error_description:
               "The client_id is required. You can send it with client_secret in body or via Basic Auth header.",
-          } as ITokenError,
+          } as IOauthError,
         };
       }
 
@@ -59,7 +59,7 @@ class AccessTokenController {
           data: {
             error: "invalid_client",
             error_description: "Unknown client",
-          } as ITokenError,
+          } as IOauthError,
         };
       }
 
@@ -71,7 +71,7 @@ class AccessTokenController {
             error: "invalid_client",
             error_description:
               "The client related to this request has been revoked.",
-          } as ITokenError,
+          } as IOauthError,
         };
       }
 
@@ -86,7 +86,7 @@ class AccessTokenController {
             error: "invalid_scope",
             error_description:
               "The requested scope is invalid, unknown, malformed, or exceeds the scope granted.",
-          } as ITokenError,
+          } as IOauthError,
         };
       }
 
@@ -97,7 +97,7 @@ class AccessTokenController {
             error: "invalid_request",
             error_description:
               "The secret_secret is required for confidential client. You can send it with client_id in body or via Basic Auth header.",
-          } as ITokenError,
+          } as IOauthError,
         };
       }
 
@@ -119,7 +119,7 @@ class AccessTokenController {
           data: {
             error: "invalid_client",
             error_description: "Invalid client secret.",
-          } as ITokenError,
+          } as IOauthError,
         };
       }
 
@@ -167,7 +167,7 @@ class AccessTokenController {
               error: "unsupported_grant_type",
               error_description:
                 "The authorization grant type is not supported by the authorization server.",
-            } as ITokenError,
+            } as IOauthError,
           };
       }
     } catch (e) {
@@ -179,7 +179,7 @@ class AccessTokenController {
           error: "server_error",
           error_description:
             "The authorization server encountered an unexpected condition that prevented it from fulfilling the request.",
-        } as ITokenError);
+        } as IOauthError);
       }
     }
   };

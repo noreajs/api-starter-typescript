@@ -16,7 +16,7 @@
   "author": "OvniCode Team",
   "license": "ISC",
   "dependencies": {
-    "@noreajs/core": "^1.0.10",
+    "@noreajs/core": "^1.1.0-6",
     "@noreajs/mongoose": "0.0.13-2",
     "axios": "^0.19.2",
     "body-parser": "^1.19.0",

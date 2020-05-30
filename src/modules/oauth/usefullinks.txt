@@ -9,3 +9,6 @@ https://openid.net/specs/openid-connect-core-1_0.html#JWT
 
 OpenID Connect
 https://developers.google.com/identity/protocols/oauth2/openid-connect#obtainuserinfo
+
+OAUTH error status codes
+https://developers.getbase.com/docs/rest/articles/oauth2/errors

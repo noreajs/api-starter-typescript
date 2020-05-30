@@ -1,4 +1,4 @@
-import { NoreaRouter } from "@noreajs/core";
+import { NoreaRouter, Route } from "@noreajs/core";
 import oauthClientController from "../controllers/oauth-client.controller";
 
 export default (module: NoreaRouter) => {
@@ -6,29 +6,35 @@ export default (module: NoreaRouter) => {
    * Oauth clients routes
    * *********************************
    */
+  module.use(
+    "/clients",
+    Route.group({
+      routes: (sub) => {
+        /**
+         * Get all clients
+         */
+        sub.route("/").get([oauthClientController.all]);
 
-  /**
-   * Get all clients
-   */
-  module.route("/clients").get([oauthClientController.all]);
+        /**
+         * Create client
+         */
+        sub.route("/").post([oauthClientController.create]);
 
-  /**
-   * Create client
-   */
-  module.route("/clients").post([oauthClientController.create]);
+        /**
+         * Show client
+         */
+        sub.route("/:clientId").get([oauthClientController.show]);
 
-  /**
-   * Show client
-   */
-  module.route("/clients/:id").get([oauthClientController.show]);
+        /**
+         * Edit client
+         */
+        sub.route("/:clientId").put([oauthClientController.edit]);
 
-  /**
-   * Edit client
-   */
-  module.route("/clients/:id").put([oauthClientController.edit]);
-
-  /**
-   * Delete client
-   */
-  module.route("/clients/:id").delete([oauthClientController.delete]);
+        /**
+         * Delete client
+         */
+        sub.route("/:clientId").delete([oauthClientController.delete]);
+      },
+    })
+  );
 };
