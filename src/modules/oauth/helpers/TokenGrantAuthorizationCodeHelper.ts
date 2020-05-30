@@ -7,8 +7,8 @@ import OauthAuthCode from "../models/OauthAuthCode";
 import moment from "moment";
 import ITokenRequest from "../interfaces/ITokenRequest";
 import { toASCII } from "punycode";
-import IOauthError from "../interfaces/IOauthError";
 import { IOauthClient } from "../models/OauthClient";
+import OauthHelper from "./OauthHelper";
 
 class TokenGrantAuthorizationCodeHelper {
   /**
@@ -41,35 +41,26 @@ class TokenGrantAuthorizationCodeHelper {
 
       if (oauthCode) {
         if (moment().isAfter(oauthCode.expiresAt)) {
-          throw {
-            status: HttpStatus.BadRequest,
-            data: {
-              error: "invalid_grant",
-              error_description:
-                "The authorization code has been expired. Try to get another one.",
-            } as IOauthError,
-          };
+          return OauthHelper.throwError(res, {
+            error: "invalid_grant",
+            error_description:
+              "The authorization code has been expired. Try to get another one.",
+          });
         } else if (oauthCode.revokedAt) {
-          throw {
-            status: HttpStatus.BadRequest,
-            data: {
-              error: "invalid_grant",
-              error_description:
-                "The authorization code has been revoked. Try to get another one.",
-            } as IOauthError,
-          };
+          return OauthHelper.throwError(res, {
+            error: "invalid_grant",
+            error_description:
+              "The authorization code has been revoked. Try to get another one.",
+          });
         } else {
           /**
            * Redirect URI must match
            */
           if (oauthCode.redirectUri !== data.redirect_uri) {
-            throw {
-              status: HttpStatus.BadRequest,
-              data: {
-                error: "invalid_grant",
-                error_description: `The redirect_uri parameter must be identical to the one included in the authorization request.`,
-              } as IOauthError,
-            };
+            return OauthHelper.throwError(res, {
+              error: "invalid_grant",
+              error_description: `The redirect_uri parameter must be identical to the one included in the authorization request.`,
+            });
           }
 
           /**
@@ -77,24 +68,18 @@ class TokenGrantAuthorizationCodeHelper {
            */
           if (oauthCode.codeChallenge) {
             if (!data.code_verifier) {
-              throw {
-                status: HttpStatus.BadRequest,
-                data: {
-                  error: "invalid_request",
-                  error_description: `The "code_verifier" is required.`,
-                } as IOauthError,
-              };
+              return OauthHelper.throwError(res, {
+                error: "invalid_request",
+                error_description: `The "code_verifier" is required.`,
+              });
             } else {
               switch (oauthCode.codeChallengeMethod) {
                 case "plain":
                   if (data.code_verifier !== oauthCode.codeChallenge) {
-                    throw {
-                      status: HttpStatus.BadRequest,
-                      data: {
-                        error: "invalid_grant",
-                        error_description: `Code verifier and code challenge are not identical.`,
-                      } as IOauthError,
-                    };
+                    return OauthHelper.throwError(res, {
+                      error: "invalid_grant",
+                      error_description: `Code verifier and code challenge are not identical.`,
+                    });
                   }
                   break;
                 case "S256":
@@ -108,13 +93,10 @@ class TokenGrantAuthorizationCodeHelper {
                     .replace(/\//g, "_");
 
                   if (hashed !== oauthCode.codeChallenge) {
-                    throw {
-                      status: HttpStatus.BadRequest,
-                      data: {
-                        error: "invalid_grant",
-                        error_description: `Hashed code verifier and code challenge are not identical.`,
-                      } as IOauthError,
-                    };
+                    return OauthHelper.throwError(res, {
+                      error: "invalid_grant",
+                      error_description: `Hashed code verifier and code challenge are not identical.`,
+                    });
                   }
 
                   break;
@@ -142,25 +124,18 @@ class TokenGrantAuthorizationCodeHelper {
           } as IToken);
         }
       } else {
-        throw {
-          status: HttpStatus.BadRequest,
-          data: {
-            error: "invalid_grant",
-            error_description: `The authorization code is not valid.`,
-          } as IOauthError,
-        };
+        return OauthHelper.throwError(res, {
+          error: "invalid_grant",
+          error_description: `The authorization code is not valid.`,
+        });
       }
     } catch (error) {
-      if (error.status) {
-        return res.status(error.status).json(error.data);
-      } else {
-        console.log(error);
-        return res.status(HttpStatus.BadRequest).json({
-          error: "server_error",
-          error_description:
-            "The authorization server encountered an unexpected condition that prevented it from fulfilling the request.",
-        } as IOauthError);
-      }
+      console.log(error);
+      return OauthHelper.throwError(res, {
+        error: "server_error",
+        error_description:
+          "The authorization server encountered an unexpected condition that prevented it from fulfilling the request.",
+      });
     }
   }
 }

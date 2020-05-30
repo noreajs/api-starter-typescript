@@ -5,6 +5,7 @@ import IToken from "../interfaces/IToken";
 import { Request, Response } from "express";
 import HttpStatus from "../../../common/HttpStatus";
 import IOauthError from "../interfaces/IOauthError";
+import OauthHelper from "./OauthHelper";
 
 class TokenGrantClientCredentialsHelper {
   /**
@@ -30,28 +31,22 @@ class TokenGrantClientCredentialsHelper {
        */
       const mergedScope = client.mergedScope(client.scope, data.scope);
       if (!mergedScope) {
-        throw {
-          status: HttpStatus.BadRequest,
-          data: {
-            error: "invalid_scope",
-            error_description:
-              "The requested scope is invalid, unknown, malformed, or exceeds the scope granted.",
-          } as IOauthError,
-        };
+        return OauthHelper.throwError(res, {
+          error: "invalid_scope",
+          error_description:
+            "The requested scope is invalid, unknown, malformed, or exceeds the scope granted.",
+        });
       }
 
       /**
        * Check client type
        */
       if (client.clientType !== "confidential") {
-        throw {
-          status: HttpStatus.BadRequest,
-          data: {
-            error: "unauthorized_client",
-            error_description:
-              "The authenticated client is not authorized to use this authorization grant type.",
-          } as IOauthError,
-        };
+        return OauthHelper.throwError(res, {
+          error: "unauthorized_client",
+          error_description:
+            "The authenticated client is not authorized to use this authorization grant type.",
+        });
       }
 
       /**
@@ -72,16 +67,12 @@ class TokenGrantClientCredentialsHelper {
         expires_in: tokens.accessTokenExpireIn,
       } as IToken);
     } catch (error) {
-      if (error.status) {
-        return res.status(error.status).json(error.data);
-      } else {
-        console.log(error);
-        return res.status(HttpStatus.BadRequest).json({
-          error: "server_error",
-          error_description:
-            "The authorization server encountered an unexpected condition that prevented it from fulfilling the request.",
-        } as IOauthError);
-      }
+      console.log(error);
+      return OauthHelper.throwError(res, {
+        error: "server_error",
+        error_description:
+          "The authorization server encountered an unexpected condition that prevented it from fulfilling the request.",
+      });
     }
   }
 }

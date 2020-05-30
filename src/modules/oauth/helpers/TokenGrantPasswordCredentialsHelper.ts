@@ -6,6 +6,7 @@ import HttpStatus from "../../../common/HttpStatus";
 import { Request, Response } from "express";
 import IOauthError from "../interfaces/IOauthError";
 import UtilsHelper from "./UtilsHelper";
+import OauthHelper from "./OauthHelper";
 
 class TokenGrantPasswordCredentialsHelper {
   /**
@@ -25,24 +26,22 @@ class TokenGrantPasswordCredentialsHelper {
     oauthParams: IOauthDefaults
   ) {
     try {
-
       /**
        * Required parameters
        * *********************************
        */
-      const requiredParameters = UtilsHelper.checkAttributes<ITokenRequest>(["username", "password"], data);
+      const requiredParameters = UtilsHelper.checkAttributes<ITokenRequest>(
+        ["username", "password"],
+        data
+      );
 
       if (requiredParameters.length != 0) {
-        throw {
-          status: HttpStatus.BadRequest,
-          redirect: false,
-          data: {
-            error: "invalid_request",
-            error_description: `${requiredParameters.join(", ")} ${
-              requiredParameters.length > 1 ? "are required" : "is required"
-            }`,
-          } as IOauthError,
-        };
+        return OauthHelper.throwError(res, {
+          error: "invalid_request",
+          error_description: `${requiredParameters.join(", ")} ${
+            requiredParameters.length > 1 ? "are required" : "is required"
+          }`,
+        });
       }
 
       /**
@@ -55,28 +54,25 @@ class TokenGrantPasswordCredentialsHelper {
       );
 
       if (!passwordGrantData) {
-        throw {
-          status: HttpStatus.BadRequest,
-          data: {
-            error: "invalid_grant",
-            error_description: `Given credentials are not valid or do not match any record.`,
-          } as IOauthError,
-        };
+        return OauthHelper.throwError(res, {
+          error: "invalid_grant",
+          error_description: `Given credentials are not valid or do not match any record.`,
+        });
       }
 
       /**
        * Check scopes
        * ****************
        */
-      const mergedScope = client.mergedScope(passwordGrantData.scope, data.scope);
+      const mergedScope = client.mergedScope(
+        passwordGrantData.scope,
+        data.scope
+      );
       if (!mergedScope) {
-        throw {
-          status: HttpStatus.BadRequest,
-          data: {
-            error: "invalid_scope",
-            error_description: "The request scope must be in client scope.",
-          } as IOauthError,
-        };
+        return OauthHelper.throwError(res, {
+          error: "invalid_scope",
+          error_description: "The request scope must be in client scope.",
+        });
       }
 
       /**
@@ -100,16 +96,11 @@ class TokenGrantPasswordCredentialsHelper {
       } as IToken);
     } catch (error) {
       console.log(error);
-      if (error.status) {
-        return res.status(error.status).json(error.data);
-      } else {
-        console.log(error);
-        return res.status(HttpStatus.BadRequest).json({
-          error: "server_error",
-          error_description:
-            "The authorization server encountered an unexpected condition that prevented it from fulfilling the request.",
-        } as IOauthError);
-      }
+      return OauthHelper.throwError(res, {
+        error: "server_error",
+        error_description:
+          "The authorization server encountered an unexpected condition that prevented it from fulfilling the request.",
+      });
     }
   }
 }

@@ -11,12 +11,12 @@ import TokenGrantPasswordCredentialsHelper from "../helpers/TokenGrantPasswordCr
 import TokenGrantRefreshTokenHelper from "../helpers/TokenGrantRefreshTokenHelper";
 
 class AccessTokenController {
-    oauthParams: IOauthDefaults;
+  oauthParams: IOauthDefaults;
 
   constructor() {
     this.oauthParams = OauthDefaults;
   }
-  
+
   /**
    * Generate token
    * @param req request
@@ -37,14 +37,11 @@ class AccessTokenController {
 
     try {
       if (!data.client_id) {
-        throw {
-          status: HttpStatus.BadRequest,
-          data: {
-            error: "invalid_request",
-            error_description:
-              "The client_id is required. You can send it with client_secret in body or via Basic Auth header.",
-          } as IOauthError,
-        };
+        return OauthHelper.throwError(res, {
+          error: "invalid_request",
+          error_description:
+            "The client_id is required. You can send it with client_secret in body or via Basic Auth header.",
+        });
       }
 
       // load client
@@ -54,25 +51,19 @@ class AccessTokenController {
        * Client has to exist
        */
       if (!client) {
-        throw {
-          status: HttpStatus.Unauthorized,
-          data: {
-            error: "invalid_client",
-            error_description: "Unknown client",
-          } as IOauthError,
-        };
+        return OauthHelper.throwError(res, {
+          error: "invalid_client",
+          error_description: "Unknown client",
+        });
       }
 
       // Client revoked
       if (client.revokedAt) {
-        throw {
-          status: HttpStatus.Unauthorized,
-          data: {
-            error: "invalid_client",
-            error_description:
-              "The client related to this request has been revoked.",
-          } as IOauthError,
-        };
+        return OauthHelper.throwError(res, {
+          error: "invalid_client",
+          error_description:
+            "The client related to this request has been revoked.",
+        });
       }
 
       /**
@@ -80,25 +71,19 @@ class AccessTokenController {
        * ****************
        */
       if (data.scope && !client.validateScope(data.scope)) {
-        throw {
-          status: HttpStatus.BadRequest,
-          data: {
-            error: "invalid_scope",
-            error_description:
-              "The requested scope is invalid, unknown, malformed, or exceeds the scope granted.",
-          } as IOauthError,
-        };
+        return OauthHelper.throwError(res, {
+          error: "invalid_scope",
+          error_description:
+            "The requested scope is invalid, unknown, malformed, or exceeds the scope granted.",
+        });
       }
 
       if (client.clientType === "confidential" && !data.client_secret) {
-        throw {
-          status: HttpStatus.BadRequest,
-          data: {
-            error: "invalid_request",
-            error_description:
-              "The secret_secret is required for confidential client. You can send it with client_id in body or via Basic Auth header.",
-          } as IOauthError,
-        };
+        return OauthHelper.throwError(res, {
+          error: "invalid_request",
+          error_description:
+            "The secret_secret is required for confidential client. You can send it with client_id in body or via Basic Auth header.",
+        });
       }
 
       /**
@@ -114,13 +99,10 @@ class AccessTokenController {
           oauthSecretKey: this.oauthParams.OAUTH_SECRET_KEY,
         })
       ) {
-        throw {
-          status: HttpStatus.Unauthorized,
-          data: {
-            error: "invalid_client",
-            error_description: "Invalid client secret.",
-          } as IOauthError,
-        };
+        return OauthHelper.throwError(res, {
+          error: "invalid_client",
+          error_description: "Invalid client secret.",
+        });
       }
 
       switch (data.grant_type) {
@@ -161,26 +143,19 @@ class AccessTokenController {
             this.oauthParams
           );
         default:
-          throw {
-            status: HttpStatus.BadRequest,
-            data: {
-              error: "unsupported_grant_type",
-              error_description:
-                "The authorization grant type is not supported by the authorization server.",
-            } as IOauthError,
-          };
+          return OauthHelper.throwError(res, {
+            error: "unsupported_grant_type",
+            error_description:
+              "The authorization grant type is not supported by the authorization server.",
+          });
       }
     } catch (e) {
-      if (e.status) {
-        return res.status(e.status).json(e.data);
-      } else {
-        console.log(e);
-        return res.status(HttpStatus.BadRequest).json({
-          error: "server_error",
-          error_description:
-            "The authorization server encountered an unexpected condition that prevented it from fulfilling the request.",
-        } as IOauthError);
-      }
+      console.log(e);
+      return OauthHelper.throwError(res, {
+        error: "server_error",
+        error_description:
+          "The authorization server encountered an unexpected condition that prevented it from fulfilling the request.",
+      });
     }
   };
 
@@ -207,4 +182,4 @@ class AccessTokenController {
   }
 }
 
-export default new AccessTokenController
+export default new AccessTokenController();
