@@ -2,6 +2,8 @@ import { Application } from "express";
 import { group } from "@noreajs/core";
 import oauthController from "../controllers/oauth.controller";
 import oauthClientController from "../controllers/oauth-client.controller";
+import oauthMiddleware from "../middlewares/oauth.middleware";
+import authorizationController from "../controllers/authorization.controller";
 
 export default (app: Application) => {
   /**
@@ -38,12 +40,20 @@ export default (app: Application) => {
       /**
        * Get authorization dialog
        */
-      g.route("/dialog").post([oauthController.dialog]);
+      g.route("/dialog").get([oauthController.dialog]);
 
       /**
-       * Authorise
+       * Authorize
        */
-      g.route("/authorize").get([oauthController.authorize]);
+      g.route("/authorize").get([
+        oauthMiddleware.validAuthorizationRequestRequired,
+        authorizationController.authorize,
+      ]);
+
+      /**
+       * Authenticate the user
+       */
+      g.route("/authorize").post([authorizationController.authenticate]);
 
       /**
        * Get token

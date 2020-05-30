@@ -1,30 +1,21 @@
 import { Request, Response } from "express";
-import jwt from "jsonwebtoken";
 import { v4 as uuidV4 } from "uuid";
 import crypto from "crypto";
 import HttpStatus from "../../../common/HttpStatus";
 import IAuthCodeRequest from "../interfaces/IAuthCodeRequest";
-import OauthClient from "../models/OauthClient";
-import OauthAuthCode, { IOauthAuthCode } from "../models/OauthAuthCode";
+import OauthClient, { IOauthClient } from "../models/OauthClient";
+import OauthAuthCode from "../models/OauthAuthCode";
 import ITokenRequest from "../interfaces/ITokenRequest";
-import moment from "moment";
-import OauthAccessToken, {
-  IOauthAccessToken,
-} from "../models/OauthAccessToken";
-import IToken from "../interfaces/IToken";
 import OauthDefaults, { IOauthDefaults } from "../OauthDefaults";
-import { isQueryParamFilled } from "../../../common/Utils";
 import OauthHelper from "../helpers/OauthHelper";
-import IAuthorizationErrorResponse from "../interfaces/IAuthorizationErrorResponse";
-import IAuthorizationResponse from "../interfaces/IAuthorizationResponse";
 import UrlHelper from "../helpers/UrlHelper";
 import ITokenError from "../interfaces/ITokenError";
 import TokenGrantAuthorizationCodeHelper from "../helpers/TokenGrantAuthorizationCodeHelper";
 import TokenGrantClientCredentialsHelper from "../helpers/TokenGrantClientCredentialsHelper";
 import TokenGrantPasswordCredentialsHelper from "../helpers/TokenGrantPasswordCredentialsHelper";
 import TokenGrantRefreshTokenHelper from "../helpers/TokenGrantRefreshTokenHelper";
-import IJwtTokenPayload from "../interfaces/IJwtTokenPayload";
-import UtilsHelper from "../helpers/UtilsHelper";
+import path from "path";
+import IAuthorizationErrorResponse from "../interfaces/IAuthorizationErrorResponse";
 
 class OauthController {
   oauthParams: IOauthDefaults;
@@ -32,239 +23,6 @@ class OauthController {
   constructor() {
     this.oauthParams = OauthDefaults;
   }
-
-  /**
-   * Get authorization token
-   * @param req request
-   * @param res response
-   */
-  authorize = async (req: Request, res: Response) => {
-    // get request query data
-    let data: IAuthCodeRequest = req.query as IAuthCodeRequest;
-
-    try {
-      /**
-       * Required parameters
-       */
-      const requiredParameters = UtilsHelper.checkAttributes<IAuthCodeRequest>(
-        ["response_type", "redirect_uri", "client_id"],
-        data
-      );
-
-      if (requiredParameters.length != 0) {
-        throw {
-          status: HttpStatus.BadRequest,
-          redirect: false,
-          data: {
-            error: "invalid_request",
-            error_description: `${requiredParameters.join(", ")} ${
-              requiredParameters.length > 1 ? "are required" : "is required"
-            }`,
-            state: data.state,
-          } as IAuthorizationErrorResponse,
-        };
-      }
-
-      /**
-       * Code challenge method validation
-       */
-      if (
-        data.code_challenge_method &&
-        !["plain", "S256"].includes(data.code_challenge_method)
-      ) {
-        throw {
-          status: HttpStatus.BadRequest,
-          data: {
-            error: "invalid_request",
-            error_description: `The code challenge method must be "plain" or "S256"`,
-            state: data.state,
-          } as IAuthorizationErrorResponse,
-        };
-      }
-
-      // load client
-      const client = await OauthClient.findOne({ clientId: data.client_id });
-
-      /**
-       * Client has to exist
-       */
-      if (!client) {
-        throw {
-          status: HttpStatus.BadRequest,
-          redirect: false,
-          data: {
-            error: "invalid_request",
-            error_description: "Unknown client",
-            state: data.state,
-          } as IAuthorizationErrorResponse,
-        };
-      }
-
-      if (!client.redirectURIs.includes(data.redirect_uri)) {
-        throw {
-          status: HttpStatus.BadRequest,
-          redirect: false,
-          data: {
-            error: "invalid_request",
-            error_description:
-              "Given redirect uri is not in the client redirect URIs",
-            state: data.state,
-          } as IAuthorizationErrorResponse,
-        };
-      }
-
-      /**
-       * Authentificate client
-       * ***************************************
-       */
-
-      // Client revoked
-      if (client.revokedAt) {
-        throw {
-          status: HttpStatus.BadRequest,
-          data: {
-            error: "access_denied",
-            error_description:
-              "The client related to this request has been revoked.",
-            state: data.state,
-          } as IAuthorizationErrorResponse,
-        };
-      }
-
-      /**
-       * Check scopes
-       * ****************
-       */
-      if (data.scope && !client.validateScope(data.scope)) {
-        throw {
-          status: HttpStatus.BadRequest,
-          data: {
-            error: "invalid_scope",
-            error_description: "The request scope must be in client scopes.",
-          } as ITokenError,
-        };
-      }
-
-      /**
-       *
-       *
-       * Response type
-       *
-       */
-      if (!["code", "token"].includes(data.response_type)) {
-        throw {
-          status: HttpStatus.BadRequest,
-          data: {
-            error: "unsupported_response_type",
-            error_description:
-              "Expected value for response_type are 'token' and 'code'",
-            state: data.state,
-          } as IAuthorizationErrorResponse,
-        };
-      }
-
-      // check response type
-      if (data.response_type === "code") {
-        /**
-         * AUTHORIZATION CODE GENERATION
-         * ***********************************
-         */
-
-        const userId = uuidV4(); // if authorization has been skipped
-
-        // Authorization code
-        const authorizationCode = crypto
-          .createHmac(
-            this.oauthParams.OAUTH_HMAC_ALGORITHM,
-            this.oauthParams.OAUTH_SECRET_KEY
-          )
-          .update(userId)
-          .digest("hex");
-
-        /**
-         * Revoke other authorization code
-         */
-        await OauthAuthCode.updateMany(
-          {
-            userId: userId,
-          },
-          {
-            revokedAt: new Date(),
-          }
-        );
-
-        // create oauth code
-        const oauthCode = new OauthAuthCode({
-          userId: userId,
-          authorizationCode: authorizationCode,
-          client: client._id,
-          scope: data.scope,
-          codeChallenge: data.code_challenge,
-          codeChallengeMethod: data.code_challenge_method,
-          redirectUri: data.redirect_uri,
-          expiresAt: moment()
-            .add(this.oauthParams.OAUTH_AUTHORIZATION_CODE_LIFE_TIME, "seconds")
-            .toDate(),
-        } as Partial<IOauthAuthCode>);
-
-        // save codes
-        await oauthCode.save();
-
-        const authResponse = {
-          code: authorizationCode,
-          state: data.state,
-        } as IAuthorizationResponse;
-
-        return res.redirect(
-          UrlHelper.injectQueryParams(data.redirect_uri, authResponse)
-        );
-      } else if (data.response_type === "token") {
-        // user id
-        const userId = uuidV4();
-
-        const tokens = await client.newAccessToken({
-          grant: "implicit",
-          oauthParams: this.oauthParams,
-          req: req,
-          scope: data.scope ?? "",
-          subject: userId,
-        });
-
-        const authResponse = {
-          access_token: tokens.token,
-          token_type: this.oauthParams.OAUTH_TOKEN_TYPE,
-          expires_in: tokens.accessTokenExpireIn,
-          state: data.state,
-        } as IToken;
-
-        return res.redirect(
-          UrlHelper.injectQueryParams(data.redirect_uri, authResponse)
-        );
-      } else {
-        throw {
-          message: "Wizard! please how do you get here?",
-        };
-      }
-    } catch (e) {
-      if (e.status) {
-        if (e.redirect !== false) {
-          return res.redirect(
-            UrlHelper.injectQueryParams(data.redirect_uri, e.data)
-          );
-        } else {
-          return res.status(e.status).json(e.data);
-        }
-      } else {
-        console.log(e);
-        return res.status(HttpStatus.BadRequest).json({
-          error: "server_error",
-          error_description:
-            "The authorization server encountered an unexpected condition that prevented it from fulfilling the request.",
-          state: data.state,
-        } as IAuthorizationErrorResponse);
-      }
-    }
-  };
 
   /**
    * Generate token
@@ -461,11 +219,84 @@ class OauthController {
    * @param req request
    * @param res response
    */
-  async dialog(req: Request, res: Response) {
-    return res.status(HttpStatus.Ok).json({
-      message: "Dialog",
-    });
-  }
+  dialog = async (req: Request, res: Response) => {
+    // login path
+    const authLoginPath = path.join(
+      __dirname,
+      "..",
+      "views",
+      "pages",
+      "auth-login.ejs"
+    );
+
+    // request payload
+    const payload = JSON.parse(
+      Buffer.from(req.query.p, "base64").toString("ascii")
+    ) as {
+      oauthAuthCodeId: string;
+      order?: "cancel";
+      inputs?: {
+        [key: string]: string;
+      };
+      error?: {
+        message: string;
+        errors: {
+          [key: string]: string;
+        };
+      };
+    };
+
+    // load auth code
+    const oauthCode = await OauthAuthCode.findById(payload.oauthAuthCodeId);
+
+    // load scopes
+    if (oauthCode) {
+      /**
+       * Authentification cancelled
+       * ******************************
+       */
+      if (payload.order === "cancel") {
+        return res.redirect(
+          UrlHelper.injectQueryParams(oauthCode.redirectUri, {
+            error: "access_denied",
+            error_description: "The resource owner denied the request.",
+            state: oauthCode.state,
+          } as IAuthorizationErrorResponse)
+        );
+      } else {
+        return res.render(authLoginPath, {
+          providerName: this.oauthParams.providerName,
+          currentYear: new Date().getFullYear(),
+          oauthAuthCodeId: oauthCode._id,
+          formAction: `${UrlHelper.getFullUrl(req)}/oauth/authorize`,
+          cancelUrl: `${UrlHelper.getFullUrl(req)}/oauth/dialog?p=${Buffer.from(
+            JSON.stringify({ oauthAuthCodeId: oauthCode._id, order: "cancel" })
+          ).toString("base64")}`,
+          error: payload.error,
+          inputs: payload.inputs ?? {
+            username: "",
+            password: "",
+          },
+          client: {
+            name: oauthCode.client.name,
+            domaine: oauthCode.client.domaine,
+            logo: oauthCode.client.logo,
+            description: oauthCode.client.description,
+            internal: oauthCode.client.internal,
+            clientType: oauthCode.client.clientType,
+            clientProfile: oauthCode.client.clientProfile,
+            scope: oauthCode.client.scope,
+          } as Partial<IOauthClient>,
+        });
+      }
+    } else {
+      return res.status(HttpStatus.BadRequest).json({
+        error: "server_error",
+        error_description:
+          "The authorization server encountered an unexpected condition that prevented it from fulfilling the request.",
+      } as IAuthorizationErrorResponse);
+    }
+  };
 
   /**
    * Get information about a token

@@ -48,7 +48,7 @@ class TokenGrantPasswordCredentialsHelper {
       /**
        * Password Grant authentification data
        */
-      const passwordGrantData = await oauthParams.passwordCredentialsGrantAuthLogic(
+      const passwordGrantData = await oauthParams.authenticationLogic(
         data.username,
         data.password,
         data.scope
@@ -99,6 +99,7 @@ class TokenGrantPasswordCredentialsHelper {
         data: passwordGrantData.extraData,
       } as IToken);
     } catch (error) {
+      console.log(error);
       if (error.status) {
         return res.status(error.status).json(error.data);
       } else {

@@ -4,6 +4,7 @@ import { IOauthDefaults } from "../OauthDefaults";
 import IJwtTokenPayload from "../interfaces/IJwtTokenPayload";
 import { SignOptions, sign } from "jsonwebtoken";
 import { IOauthClient } from "../models/OauthClient";
+import UrlHelper from "./UrlHelper";
 
 class OauthHelper {
   /**
@@ -46,27 +47,11 @@ class OauthHelper {
     }
   }
 
-  getFullUrl(req: Request) {
-    return req.protocol + "://" + req.get("host");
-  }
-
   jwtSign(req: Request, oauthParams: IOauthDefaults, claims: IJwtTokenPayload) {
     return sign(claims, oauthParams.OAUTH_SECRET_KEY, {
       algorithm: oauthParams.OAUTH_JWT_ALGORITHM,
-      issuer: this.getFullUrl(req),
+      issuer: UrlHelper.getFullUrl(req),
     });
-  }
-
-  getMatchedScope(queryScope: string, targetScope: string) {
-    const queryScopes = queryScope.split(" ");
-    const targetScopes = targetScope.split(" ");
-    const matches = [];
-    for (const scope of queryScopes) {
-      if (targetScopes.includes(scope)) {
-        matches.push(scope);
-      }
-    }
-    return matches.join(" ");
   }
 }
 

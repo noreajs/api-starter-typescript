@@ -20,6 +20,8 @@ const app = new NoreaApp(apiRoutes, {
         app.use(bodyParser.urlencoded({ extended: false }));
         // Get MongoDB Instance
         MongodbContext.init();
+        // set the view engine to ejs
+        app.set('view engine', 'ejs');
     },
     afterStart: (app, server, port) => {
         console.log(`Environement : ${process.env.NODE_ENV || 'local'}`);

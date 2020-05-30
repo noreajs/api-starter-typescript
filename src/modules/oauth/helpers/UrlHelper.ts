@@ -1,3 +1,5 @@
+import { Request } from "express";
+
 class UrlHelper {
   injectQueryParams(uri: string, params: any) {
     const uriObj = new URL(uri);
@@ -7,6 +9,10 @@ class UrlHelper {
       }
     }
     return uriObj.toString();
+  }
+
+  getFullUrl(req: Request) {
+    return req.protocol + "://" + req.get("host");
   }
 }
 

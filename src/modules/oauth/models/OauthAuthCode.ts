@@ -1,12 +1,15 @@
 import { IOauthClient } from "./OauthClient";
 import { mongooseModel, Document, Schema } from "@noreajs/mongoose";
 import validator from "validator";
+import { IAuthorizationResponseType } from "../interfaces/IAuthCodeRequest";
 
 export interface IOauthAuthCode extends Document {
   userId: string;
   authorizationCode: string;
   client: IOauthClient;
+  state?: string;
   scope: string;
+  responseType: IAuthorizationResponseType;
   codeChallenge?: string;
   codeChallengeMethod?: string;
   redirectUri: string;
@@ -25,15 +28,37 @@ export default mongooseModel<IOauthAuthCode>({
       },
       authorizationCode: {
         type: Schema.Types.String,
-        required: [true, "Authorization code is required."],
+        validate: [
+          {
+            validator: function (value: string) {
+              const self = this as IOauthAuthCode;
+              return !(
+                self.userId !== null &&
+                self.userId != undefined &&
+                self.userId.length !== 0 &&
+                (value === null || value === undefined || value.length === 0)
+              );
+            },
+            message: "Authorization code is required.",
+          },
+        ],
       },
       client: {
         type: Schema.Types.ObjectId,
         ref: "OauthClient",
         required: [true, "The oauth client is required."],
+        autopopulate: true,
+      },
+      state: {
+        type: Schema.Types.String,
       },
       scope: {
         type: Schema.Types.String,
+      },
+      responseType: {
+        type: Schema.Types.String,
+        enum: ["code", "token"],
+        required: [true, "The reponse type is required."]
       },
       codeChallenge: {
         type: Schema.Types.String,

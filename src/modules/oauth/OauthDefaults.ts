@@ -20,7 +20,8 @@ export interface IOauthDefaults {
     | "ES512";
   OAUTH_HMAC_ALGORITHM: string;
   OAUTH_TOKEN_TYPE: "Bearer";
-  passwordCredentialsGrantAuthLogic: (
+  providerName: string;
+  authenticationLogic: (
     username: string,
     password: string,
     scope?: string
@@ -47,7 +48,7 @@ export interface IOauthDefaults {
   };
 }
 
-export default {
+const defaultParams: IOauthDefaults = {
   OAUTH_ISSUER: "ISSUER",
   OAUTH_SECRET_KEY:
     "66a5ddac054bfe9389e82dea96c85c2084d4b011c3d33e0681a7488756a00ca334a1468015da8",
@@ -58,15 +59,16 @@ export default {
   OAUTH_HMAC_ALGORITHM: "sha512",
   OAUTH_JWT_ALGORITHM: "HS512",
   OAUTH_TOKEN_TYPE: "Bearer",
-  passwordCredentialsGrantAuthLogic: function (
+  providerName: "Ovnicode",
+  authenticationLogic: function (
     username: string,
     password: string,
     scope?: string
-  ) {
+  ): Promise<IPasswordGrantAuthData> | IPasswordGrantAuthData {
     const userId = uuidV4();
     return {
       userId: userId,
-      // scope: "*",
+      scope: "*",
       extraData: {
         user: {
           id: userId,
@@ -96,4 +98,6 @@ export default {
       external: 60 * 60 * 24 * 7, // 1 week
     },
   },
-} as IOauthDefaults;
+};
+
+export default defaultParams;

@@ -60,32 +60,6 @@ class TokenGrantAuthorizationCodeHelper {
           };
         } else {
           /**
-           * Verify authorization code
-           * *****************************
-           */
-          const hashedCode = crypto
-            .createHmac(
-              oauthParams.OAUTH_HMAC_ALGORITHM,
-              oauthParams.OAUTH_SECRET_KEY
-            )
-            .update(oauthCode.userId)
-            .digest("hex");
-
-          /**
-           * Wrong token.. Wizard on board
-           */
-          if (hashedCode !== data.code) {
-            throw {
-              status: HttpStatus.BadRequest,
-              data: {
-                error: "invalid_grant",
-                error_description:
-                  "The authorization code in not valid or corrupted.",
-              } as ITokenError,
-            };
-          }
-
-          /**
            * Redirect URI must match
            */
           if (oauthCode.redirectUri !== data.redirect_uri) {
