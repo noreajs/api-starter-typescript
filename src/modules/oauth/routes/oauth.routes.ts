@@ -4,8 +4,9 @@ import oauthController from "../controllers/oauth.controller";
 import oauthClientRoutes from "./oauth-client.routes";
 import authorizationRoutes from "./authorization.routes";
 import accessTokenRoutes from "./access-token.routes";
+import { IRequiredOauthContext } from "../OauthContext";
 
-export default (app: Application) => {
+export default (app: Application, oauthContext: IRequiredOauthContext) => {
   /**
    * Auth routes
    */
@@ -16,23 +17,25 @@ export default (app: Application) => {
         /**
          * Clients routes
          */
-        oauthClientRoutes(module);
+        oauthClientRoutes(module, oauthContext);
 
         /**
          * Authorization routes
          */
-        authorizationRoutes(module);
+        authorizationRoutes(module, oauthContext);
 
         /**
          * Access tokens routes
          */
-        accessTokenRoutes(module);
+        accessTokenRoutes(module, oauthContext);
 
         /**
          * Get token
          * For test purpose
          */
-        module.route("/callback").get([oauthController.callback]);
+        module
+          .route("/callback")
+          .get([new oauthController(oauthContext).callback]);
       },
     })
   );

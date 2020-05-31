@@ -1,8 +1,9 @@
-import { IOauthClient } from "./OauthClient";
+import { IOauthClient, OauthClientGrantType } from "./OauthClient";
 import { mongooseModel, Document, Schema, model } from "@noreajs/mongoose";
 
 export interface IOauthAccessToken extends Document {
   userId: string;
+  grant: OauthClientGrantType;
   client: IOauthClient;
   name: string;
   scope: string;
@@ -19,6 +20,11 @@ export default mongooseModel<IOauthAccessToken>({
     {
       userId: {
         type: Schema.Types.String,
+      },
+      grant: {
+        type: Schema.Types.String,
+        enum: ["implicit", "client_credentials", "password","authorization_code"],
+        required: [true, "The grant is required."]
       },
       client: {
         type: Schema.Types.ObjectId,

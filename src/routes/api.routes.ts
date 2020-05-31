@@ -2,7 +2,6 @@ import { Request, Response, Application } from "express";
 import authRoutes from "./auth.routes";
 import userRoutes from "./user.routes";
 import { NoreaAppRoutes } from "@noreajs/core";
-import oauthRoutes from "../modules/oauth/routes/oauth.routes";
 
 export default new NoreaAppRoutes({
     routes(app: Application): void {
@@ -19,11 +18,6 @@ export default new NoreaAppRoutes({
                 }
             });
         });
-
-        /**
-         * Oauth routes
-         */
-        oauthRoutes(app);
 
         /**
          * Auth routes

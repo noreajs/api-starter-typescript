@@ -5,13 +5,13 @@ import {
   HookNextFunction,
 } from "@noreajs/mongoose";
 import validator from "validator";
-import { IOauthDefaults } from "../OauthDefaults";
 import OauthAccessToken, { IOauthAccessToken } from "./OauthAccessToken";
 import { Request } from "express";
 import moment from "moment";
 import OauthHelper from "../helpers/OauthHelper";
 import OauthRefreshToken, { IOauthRefreshToken } from "./OauthRefreshToken";
 import UtilsHelper from "../helpers/UtilsHelper";
+import { IRequiredOauthContext } from "../OauthContext";
 
 export type OauthClientType = "confidential" | "public";
 export type OauthClientProfileType = "web" | "user-agent-based" | "native";
@@ -28,7 +28,7 @@ export type OauthTokenType = {
 
 export type NewAccessTokenParamsType = {
   req: Request;
-  oauthParams: IOauthDefaults;
+  oauthContext: IRequiredOauthContext;
   grant: OauthClientGrantType;
   scope: string;
   subject: string;
@@ -51,8 +51,8 @@ export interface IOauthClient extends Document {
   scope: string;
   revokedAt?: Date;
   validateScope: (scope: String) => boolean;
-  accessTokenExpiresIn: (oauthParams: IOauthDefaults) => number;
-  refreshTokenExpiresIn: (oauthParams: IOauthDefaults) => number;
+  accessTokenExpiresIn: (oauthContext: IRequiredOauthContext) => number;
+  refreshTokenExpiresIn: (oauthContext: IRequiredOauthContext) => number;
   newAccessToken: (params: NewAccessTokenParamsType) => Promise<OauthTokenType>;
   mergedScope: (
     subjectScope: string,
@@ -176,39 +176,39 @@ export default mongooseModel<IOauthClient>({
         return true;
       }
     },
-    accessTokenExpiresIn: function (oauthParams: IOauthDefaults): number {
+    accessTokenExpiresIn: function (oauthContext: IRequiredOauthContext): number {
       switch (this.clientType) {
         case "public":
           if (this.internal) {
-            return oauthParams.accessTokenExpiresIn.public.internal;
+            return oauthContext.accessTokenExpiresIn.public.internal;
           } else {
-            return oauthParams.accessTokenExpiresIn.public.external;
+            return oauthContext.accessTokenExpiresIn.public.external;
           }
         case "confidential":
           if (this.internal) {
-            return oauthParams.accessTokenExpiresIn.confidential.internal;
+            return oauthContext.accessTokenExpiresIn.confidential.internal;
           } else {
-            return oauthParams.accessTokenExpiresIn.confidential.external;
+            return oauthContext.accessTokenExpiresIn.confidential.external;
           }
       }
-      return oauthParams.accessTokenExpiresIn.public.external;
+      return oauthContext.accessTokenExpiresIn.public.external;
     },
-    refreshTokenExpiresIn: function (oauthParams: IOauthDefaults): number {
+    refreshTokenExpiresIn: function (oauthContext: IRequiredOauthContext): number {
       switch (this.clientType) {
         case "public":
           if (this.internal) {
-            return oauthParams.refreshTokenExpiresIn.public.internal;
+            return oauthContext.refreshTokenExpiresIn.public.internal;
           } else {
-            return oauthParams.refreshTokenExpiresIn.public.external;
+            return oauthContext.refreshTokenExpiresIn.public.external;
           }
         case "confidential":
           if (this.internal) {
-            return oauthParams.refreshTokenExpiresIn.confidential.internal;
+            return oauthContext.refreshTokenExpiresIn.confidential.internal;
           } else {
-            return oauthParams.refreshTokenExpiresIn.confidential.external;
+            return oauthContext.refreshTokenExpiresIn.confidential.external;
           }
       }
-      return oauthParams.refreshTokenExpiresIn.public.external;
+      return oauthContext.refreshTokenExpiresIn.public.external;
     },
     newAccessToken: async function (
       params: NewAccessTokenParamsType
@@ -222,7 +222,7 @@ export default mongooseModel<IOauthClient>({
          * Access token expires in
          */
         const accessTokenExpiresIn = this.accessTokenExpiresIn(
-          params.oauthParams
+          params.oauthContext
         );
 
         /**
@@ -230,6 +230,7 @@ export default mongooseModel<IOauthClient>({
          */
         const oauthAccessToken = await new OauthAccessToken({
           userId: params.subject,
+          grant: params.grant,
           client: this._id,
           name: this.name,
           scope: params.scope,
@@ -239,7 +240,7 @@ export default mongooseModel<IOauthClient>({
 
         // return object
         const r: OauthTokenType = {
-          token: OauthHelper.jwtSign(params.req, params.oauthParams, {
+          token: OauthHelper.jwtSign(params.req, params.oauthContext, {
             client_id: this.clientId,
             scope: params.scope,
             azp: this.domaine ?? this.clientId,
@@ -273,7 +274,7 @@ export default mongooseModel<IOauthClient>({
           const oauthRefreshToken = await new OauthRefreshToken({
             accessToken: oauthAccessToken._id,
             expiresAt: moment()
-              .add(this.refreshTokenExpiresIn(params.oauthParams), "seconds")
+              .add(this.refreshTokenExpiresIn(params.oauthContext), "seconds")
               .toDate(),
           } as Partial<IOauthRefreshToken>).save();
 
@@ -281,7 +282,7 @@ export default mongooseModel<IOauthClient>({
            * Refresh token
            * **********************
            */
-          r.refreshToken = OauthHelper.jwtSign(params.req, params.oauthParams, {
+          r.refreshToken = OauthHelper.jwtSign(params.req, params.oauthContext, {
             client_id: this.clientId,
             azp: this.domaine ?? this.clientId,
             aud: this.domaine ?? this.clientId,

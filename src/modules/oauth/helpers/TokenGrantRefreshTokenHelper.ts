@@ -2,9 +2,7 @@ import ITokenRequest from "../interfaces/ITokenRequest";
 import { Request, Response } from "express";
 import jwt from "jsonwebtoken";
 import { IOauthClient } from "../models/OauthClient";
-import { IOauthDefaults } from "../OauthDefaults";
 import HttpStatus from "../../../common/HttpStatus";
-import IOauthError from "../interfaces/IOauthError";
 import OauthRefreshToken from "../models/OauthRefreshToken";
 import OauthAccessToken, {
   IOauthAccessToken,
@@ -14,6 +12,7 @@ import IToken from "../interfaces/IToken";
 import IJwtTokenPayload from "../interfaces/IJwtTokenPayload";
 import OauthHelper from "./OauthHelper";
 import UtilsHelper from "./UtilsHelper";
+import { IRequiredOauthContext } from "../OauthContext";
 
 class TokenGrantRefreshTokenHelper {
   /**
@@ -23,14 +22,14 @@ class TokenGrantRefreshTokenHelper {
    * @param res response
    * @param data token request data
    * @param client oauth client
-   * @param oauthParams oauth params
+   * @param oauthContext oauth params
    */
   static async run(
     req: Request,
     res: Response,
     data: ITokenRequest,
     client: IOauthClient,
-    oauthParams: IOauthDefaults
+    oauthContext: IRequiredOauthContext
   ) {
     try {
       /**
@@ -68,9 +67,9 @@ class TokenGrantRefreshTokenHelper {
         // Verify token signature
         const refreshTokenData = jwt.verify(
           data.refresh_token,
-          oauthParams.OAUTH_SECRET_KEY,
+          oauthContext.secretKey,
           {
-            algorithms: [oauthParams.OAUTH_JWT_ALGORITHM],
+            algorithms: [oauthContext.jwtAlgorithm],
           }
         ) as IJwtTokenPayload;
 
@@ -146,7 +145,7 @@ class TokenGrantRefreshTokenHelper {
 
         // access token expires at
         const accessTokenExpiresAt = moment()
-          .add(oauthParams.accessTokenExpiresIn.public.external, "seconds")
+          .add(oauthContext.accessTokenExpiresIn.public.external, "seconds")
           .toDate();
 
         /**
@@ -186,7 +185,7 @@ class TokenGrantRefreshTokenHelper {
          * Create JWT token
          * ******************************
          */
-        const token = OauthHelper.jwtSign(req, oauthParams, {
+        const token = OauthHelper.jwtSign(req, oauthContext, {
           client_id: client.clientId,
           scope: newAccessTokenScope,
           azp: client.clientId,
@@ -198,8 +197,8 @@ class TokenGrantRefreshTokenHelper {
 
         return res.status(HttpStatus.Ok).json({
           access_token: token,
-          token_type: oauthParams.OAUTH_TOKEN_TYPE,
-          expires_in: oauthParams.refreshTokenExpiresIn.public.external,
+          token_type: oauthContext.tokenType,
+          expires_in: oauthContext.refreshTokenExpiresIn.public.external,
           refresh_token: data.refresh_token,
         } as IToken);
       } catch (error) {

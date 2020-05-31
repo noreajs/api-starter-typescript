@@ -1,4 +1,4 @@
-import OauthDefaults, { IOauthDefaults } from "../OauthDefaults";
+import { IRequiredOauthContext } from "../OauthContext";
 import { Request, Response } from "express";
 import ITokenRequest from "../interfaces/ITokenRequest";
 import OauthHelper from "../helpers/OauthHelper";
@@ -11,10 +11,10 @@ import TokenGrantPasswordCredentialsHelper from "../helpers/TokenGrantPasswordCr
 import TokenGrantRefreshTokenHelper from "../helpers/TokenGrantRefreshTokenHelper";
 
 class AccessTokenController {
-  oauthParams: IOauthDefaults;
+  oauthContext: IRequiredOauthContext;
 
-  constructor() {
-    this.oauthParams = OauthDefaults;
+  constructor(oauthContext: IRequiredOauthContext) {
+    this.oauthContext = oauthContext;
   }
 
   /**
@@ -92,12 +92,7 @@ class AccessTokenController {
       if (
         data.client_secret &&
         data.client_secret.length !== 0 &&
-        !OauthHelper.verifyClientSecret({
-          clientId: client.clientId,
-          hash: data.client_secret,
-          oauthHmacAlgorithm: this.oauthParams.OAUTH_HMAC_ALGORITHM,
-          oauthSecretKey: this.oauthParams.OAUTH_SECRET_KEY,
-        })
+        data.client_secret !== client.secretKey
       ) {
         return OauthHelper.throwError(res, {
           error: "invalid_client",
@@ -113,7 +108,7 @@ class AccessTokenController {
             res,
             data,
             client,
-            this.oauthParams
+            this.oauthContext
           );
         case "client_credentials":
           // Client Credentials Grant
@@ -122,7 +117,7 @@ class AccessTokenController {
             res,
             data,
             client,
-            this.oauthParams
+            this.oauthContext
           );
         case "password":
           // Resource Owner Password Credentials
@@ -131,7 +126,7 @@ class AccessTokenController {
             res,
             data,
             client,
-            this.oauthParams
+            this.oauthContext
           );
         case "refresh_token":
           // Refreshing an Access Token
@@ -140,7 +135,7 @@ class AccessTokenController {
             res,
             data,
             client,
-            this.oauthParams
+            this.oauthContext
           );
         default:
           return OauthHelper.throwError(res, {
@@ -182,4 +177,4 @@ class AccessTokenController {
   }
 }
 
-export default new AccessTokenController();
+export default AccessTokenController;

@@ -1,4 +1,4 @@
-import OauthDefaults, { IOauthDefaults } from "../OauthDefaults";
+import { IRequiredOauthContext } from "../OauthContext";
 import { Request, Response } from "express";
 import IAuthCodeRequest from "../interfaces/IAuthCodeRequest";
 import { IOauthClient } from "../models/OauthClient";
@@ -9,17 +9,16 @@ import moment from "moment";
 import { v4 as uuidV4 } from "uuid";
 import { suid } from "rand-token";
 import IToken from "../interfaces/IToken";
-import IOauthError from "../interfaces/IOauthError";
 import IAuthorizationResponse from "../interfaces/IAuthorizationResponse";
 import UtilsHelper from "../helpers/UtilsHelper";
 import path from "path";
 import OauthHelper from "../helpers/OauthHelper";
 
 class AuthorizationController {
-  oauthParams: IOauthDefaults;
+  oauthContext: IRequiredOauthContext;
 
-  constructor() {
-    this.oauthParams = OauthDefaults;
+  constructor(oauthContext: IRequiredOauthContext) {
+    this.oauthContext = oauthContext;
   }
 
   /**
@@ -75,7 +74,7 @@ class AuthorizationController {
         );
       } else {
         return res.render(authLoginPath, {
-          providerName: this.oauthParams.providerName,
+          providerName: this.oauthContext.providerName,
           currentYear: new Date().getFullYear(),
           oauthAuthCodeId: oauthCode._id,
           formAction: `${UrlHelper.getFullUrl(req)}/oauth/authorize`,
@@ -152,7 +151,7 @@ class AuthorizationController {
         codeChallengeMethod: data.code_challenge_method,
         redirectUri: data.redirect_uri,
         expiresAt: moment()
-          .add(this.oauthParams.OAUTH_AUTHORIZATION_CODE_LIFE_TIME, "seconds")
+          .add(this.oauthContext.authorizationCodeLifeTime, "seconds")
           .toDate(),
       } as Partial<IOauthAuthCode>);
 
@@ -217,7 +216,7 @@ class AuthorizationController {
 
     if (oauthCode) {
       try {
-        const endUserData = await this.oauthParams.authenticationLogic(
+        const endUserData = await this.oauthContext.authenticationLogic(
           formData.username,
           formData.password,
           oauthCode.scope
@@ -296,7 +295,7 @@ class AuthorizationController {
 
           const tokens = await oauthCode.client.newAccessToken({
             grant: "implicit",
-            oauthParams: this.oauthParams,
+            oauthContext: this.oauthContext,
             req: req,
             scope: mergedScope,
             subject: userId,
@@ -304,7 +303,7 @@ class AuthorizationController {
 
           const authResponse = {
             access_token: tokens.token,
-            token_type: this.oauthParams.OAUTH_TOKEN_TYPE,
+            token_type: this.oauthContext.tokenType,
             expires_in: tokens.accessTokenExpireIn,
             state: oauthCode.state,
           } as IToken;
@@ -342,4 +341,4 @@ class AuthorizationController {
   };
 }
 
-export default new AuthorizationController();
+export default AuthorizationController;

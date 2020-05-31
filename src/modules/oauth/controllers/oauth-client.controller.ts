@@ -5,14 +5,15 @@ import crypto from "crypto";
 import { v4 as uuidV4 } from "uuid";
 import { serializeError } from "serialize-error";
 import { linearizeErrors } from "@noreajs/mongoose";
-import OauthDefaults, { IOauthDefaults } from "../OauthDefaults";
+import { IRequiredOauthContext } from "../OauthContext";
 
 class OauthClientController {
-  oauthParams: IOauthDefaults;
+  oauthContext: IRequiredOauthContext;
 
-  constructor() {
-    this.oauthParams = OauthDefaults;
+  constructor(oauthContext: IRequiredOauthContext) {
+    this.oauthContext = oauthContext;
   }
+
   /**
    * Get all clients
    * @param req request
@@ -50,13 +51,7 @@ class OauthClientController {
         legalTermsAcceptedAt: req.body.legalTermsAcceptedAt,
         internal: req.body.internal,
         clientProfile: req.body.clientProfile,
-        secretKey: crypto
-          .createHmac(
-            this.oauthParams.OAUTH_HMAC_ALGORITHM,
-            this.oauthParams.OAUTH_SECRET_KEY
-          )
-          .update(clientId)
-          .digest("hex"),
+        secretKey: crypto.randomBytes(64).toString("hex"),
         redirectURIs: req.body.redirectURIs,
       } as Partial<IOauthClient>);
 
@@ -161,4 +156,4 @@ class OauthClientController {
   }
 }
 
-export default new OauthClientController();
+export default OauthClientController;

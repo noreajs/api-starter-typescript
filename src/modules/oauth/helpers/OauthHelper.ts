@@ -1,29 +1,12 @@
-import crypto from "crypto";
 import { Request, Response } from "express";
-import { IOauthDefaults } from "../OauthDefaults";
 import IJwtTokenPayload from "../interfaces/IJwtTokenPayload";
 import { sign } from "jsonwebtoken";
 import UrlHelper from "./UrlHelper";
 import HttpStatus from "../../../common/HttpStatus";
 import IOauthError from "../interfaces/IOauthError";
+import { IRequiredOauthContext } from "../OauthContext";
 
 class OauthHelper {
-  /**
-   * Verify the client secret
-   * @param params params
-   */
-  verifyClientSecret(params: {
-    clientId: string;
-    hash: string;
-    oauthSecretKey: string;
-    oauthHmacAlgorithm: string;
-  }) {
-    const signature = crypto
-      .createHmac(params.oauthHmacAlgorithm, params.oauthSecretKey)
-      .update(params.clientId)
-      .digest("hex");
-    return signature === params.hash;
-  }
 
   getBasicAuthHeaderCredentials(
     request: Request
@@ -48,9 +31,9 @@ class OauthHelper {
     }
   }
 
-  jwtSign(req: Request, oauthParams: IOauthDefaults, claims: IJwtTokenPayload) {
-    return sign(claims, oauthParams.OAUTH_SECRET_KEY, {
-      algorithm: oauthParams.OAUTH_JWT_ALGORITHM,
+  jwtSign(req: Request, oauthContext: IRequiredOauthContext, claims: IJwtTokenPayload) {
+    return sign(claims, oauthContext.secretKey, {
+      algorithm: oauthContext.jwtAlgorithm,
       issuer: UrlHelper.getFullUrl(req),
     });
   }

@@ -1,12 +1,12 @@
 import { Request, Response } from "express";
 import HttpStatus from "../../../common/HttpStatus";
-import OauthDefaults, { IOauthDefaults } from "../OauthDefaults";
+import { IRequiredOauthContext } from "../OauthContext";
 
 class OauthController {
-  oauthParams: IOauthDefaults;
+  oauthContext: IRequiredOauthContext;
 
-  constructor() {
-    this.oauthParams = OauthDefaults;
+  constructor(oauthContext: IRequiredOauthContext) {
+    this.oauthContext = oauthContext;
   }
 
   /**
@@ -22,4 +22,4 @@ class OauthController {
   }
 }
 
-export default new OauthController();
+export default OauthController;

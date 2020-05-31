@@ -1,12 +1,15 @@
 import authorizationController from "../controllers/authorization.controller";
 import { NoreaRouter } from "@noreajs/core";
 import authorizationMiddleware from "../middlewares/authorization.middleware";
+import { IRequiredOauthContext } from "../OauthContext";
 
-export default (module: NoreaRouter) => {
+export default (module: NoreaRouter, oauthContext: IRequiredOauthContext) => {
   /**
    * Get authorization dialog
    */
-  module.route("/dialog").get([authorizationController.dialog]);
+  module
+    .route("/dialog")
+    .get([new authorizationController(oauthContext).dialog]);
 
   /**
    * Authorize
@@ -15,11 +18,13 @@ export default (module: NoreaRouter) => {
     .route("/authorize")
     .get([
       authorizationMiddleware.validRequestRequired,
-      authorizationController.authorize,
+      new authorizationController(oauthContext).authorize,
     ]);
 
   /**
    * Authenticate the user
    */
-  module.route("/authorize").post([authorizationController.authenticate]);
+  module
+    .route("/authorize")
+    .post([new authorizationController(oauthContext).authenticate]);
 };

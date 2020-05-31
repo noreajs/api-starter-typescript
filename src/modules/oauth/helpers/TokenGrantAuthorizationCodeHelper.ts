@@ -1,6 +1,5 @@
 import { Request, Response } from "express";
 import crypto from "crypto";
-import { IOauthDefaults } from "../OauthDefaults";
 import HttpStatus from "../../../common/HttpStatus";
 import IToken from "../interfaces/IToken";
 import OauthAuthCode from "../models/OauthAuthCode";
@@ -9,6 +8,7 @@ import ITokenRequest from "../interfaces/ITokenRequest";
 import { toASCII } from "punycode";
 import { IOauthClient } from "../models/OauthClient";
 import OauthHelper from "./OauthHelper";
+import { IRequiredOauthContext } from "../OauthContext";
 
 class TokenGrantAuthorizationCodeHelper {
   /**
@@ -18,14 +18,14 @@ class TokenGrantAuthorizationCodeHelper {
    * @param res response
    * @param data token request data
    * @param client oauth client
-   * @param oauthParams oauth params
+   * @param oauthContext oauth params
    */
   static async run(
     req: Request,
     res: Response,
     data: ITokenRequest,
     client: IOauthClient,
-    oauthParams: IOauthDefaults
+    oauthContext: IRequiredOauthContext
   ) {
     try {
       /**
@@ -110,7 +110,7 @@ class TokenGrantAuthorizationCodeHelper {
            */
           const tokens = await client.newAccessToken({
             req: req,
-            oauthParams: oauthParams,
+            oauthContext: oauthContext,
             grant: "authorization_code",
             scope: oauthCode.scope,
             subject: oauthCode.userId,
@@ -118,7 +118,7 @@ class TokenGrantAuthorizationCodeHelper {
 
           return res.status(HttpStatus.Ok).json({
             access_token: tokens.token,
-            token_type: oauthParams.OAUTH_TOKEN_TYPE,
+            token_type: oauthContext.tokenType,
             expires_in: tokens.accessTokenExpireIn,
             refresh_token: tokens.refreshToken,
           } as IToken);

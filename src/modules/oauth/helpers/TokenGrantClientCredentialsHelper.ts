@@ -1,11 +1,10 @@
 import ITokenRequest from "../interfaces/ITokenRequest";
 import { IOauthClient } from "../models/OauthClient";
-import { IOauthDefaults } from "../OauthDefaults";
 import IToken from "../interfaces/IToken";
 import { Request, Response } from "express";
 import HttpStatus from "../../../common/HttpStatus";
-import IOauthError from "../interfaces/IOauthError";
 import OauthHelper from "./OauthHelper";
+import { IRequiredOauthContext } from "../OauthContext";
 
 class TokenGrantClientCredentialsHelper {
   /**
@@ -15,14 +14,14 @@ class TokenGrantClientCredentialsHelper {
    * @param res response
    * @param data token request
    * @param client oauth client
-   * @param oauthParams oauth parameters
+   * @param oauthContext oauth parameters
    */
   static async run(
     req: Request,
     res: Response,
     data: ITokenRequest,
     client: IOauthClient,
-    oauthParams: IOauthDefaults
+    oauthContext: IRequiredOauthContext
   ) {
     try {
       /**
@@ -55,7 +54,7 @@ class TokenGrantClientCredentialsHelper {
        */
       const tokens = await client.newAccessToken({
         req: req,
-        oauthParams: oauthParams,
+        oauthContext: oauthContext,
         grant: "client_credentials",
         scope: mergedScope,
         subject: client.clientId,
@@ -63,7 +62,7 @@ class TokenGrantClientCredentialsHelper {
 
       return res.status(HttpStatus.Ok).json({
         access_token: tokens.token,
-        token_type: oauthParams.OAUTH_TOKEN_TYPE,
+        token_type: oauthContext.tokenType,
         expires_in: tokens.accessTokenExpireIn,
       } as IToken);
     } catch (error) {

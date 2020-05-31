@@ -1,12 +1,11 @@
 import ITokenRequest from "../interfaces/ITokenRequest";
 import { IOauthClient } from "../models/OauthClient";
-import { IOauthDefaults } from "../OauthDefaults";
 import IToken from "../interfaces/IToken";
 import HttpStatus from "../../../common/HttpStatus";
 import { Request, Response } from "express";
-import IOauthError from "../interfaces/IOauthError";
 import UtilsHelper from "./UtilsHelper";
 import OauthHelper from "./OauthHelper";
+import { IRequiredOauthContext } from "../OauthContext";
 
 class TokenGrantPasswordCredentialsHelper {
   /**
@@ -16,14 +15,14 @@ class TokenGrantPasswordCredentialsHelper {
    * @param res response
    * @param data token request data
    * @param client oauth client
-   * @param oauthParams oauth params
+   * @param oauthContext oauth params
    */
   static async run(
     req: Request,
     res: Response,
     data: ITokenRequest,
     client: IOauthClient,
-    oauthParams: IOauthDefaults
+    oauthContext: IRequiredOauthContext
   ) {
     try {
       /**
@@ -47,7 +46,7 @@ class TokenGrantPasswordCredentialsHelper {
       /**
        * Password Grant authentification data
        */
-      const passwordGrantData = await oauthParams.authenticationLogic(
+      const passwordGrantData = await oauthContext.authenticationLogic(
         data.username,
         data.password,
         data.scope
@@ -81,7 +80,7 @@ class TokenGrantPasswordCredentialsHelper {
        */
       const tokens = await client.newAccessToken({
         req: req,
-        oauthParams: oauthParams,
+        oauthContext: oauthContext,
         grant: "password",
         scope: mergedScope,
         subject: passwordGrantData.userId,
@@ -89,7 +88,7 @@ class TokenGrantPasswordCredentialsHelper {
 
       return res.status(HttpStatus.Ok).json({
         access_token: tokens.token,
-        token_type: oauthParams.OAUTH_TOKEN_TYPE,
+        token_type: oauthContext.tokenType,
         expires_in: tokens.accessTokenExpireIn,
         refresh_token: tokens.refreshToken,
         data: passwordGrantData.extraData,

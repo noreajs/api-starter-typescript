@@ -1,7 +1,8 @@
 import { NoreaRouter, Route } from "@noreajs/core";
 import oauthClientController from "../controllers/oauth-client.controller";
+import { IRequiredOauthContext } from "../OauthContext";
 
-export default (module: NoreaRouter) => {
+export default (module: NoreaRouter, oauthContext: IRequiredOauthContext) => {
   /**
    * Oauth clients routes
    * *********************************
@@ -13,27 +14,33 @@ export default (module: NoreaRouter) => {
         /**
          * Get all clients
          */
-        sub.route("/").get([oauthClientController.all]);
+        sub.route("/").get([new oauthClientController(oauthContext).all]);
 
         /**
          * Create client
          */
-        sub.route("/").post([oauthClientController.create]);
+        sub.route("/").post([new oauthClientController(oauthContext).create]);
 
         /**
          * Show client
          */
-        sub.route("/:clientId").get([oauthClientController.show]);
+        sub
+          .route("/:clientId")
+          .get([new oauthClientController(oauthContext).show]);
 
         /**
          * Edit client
          */
-        sub.route("/:clientId").put([oauthClientController.edit]);
+        sub
+          .route("/:clientId")
+          .put([new oauthClientController(oauthContext).edit]);
 
         /**
          * Delete client
          */
-        sub.route("/:clientId").delete([oauthClientController.delete]);
+        sub
+          .route("/:clientId")
+          .delete([new oauthClientController(oauthContext).delete]);
       },
     })
   );
