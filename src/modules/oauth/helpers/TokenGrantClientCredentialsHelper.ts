@@ -30,7 +30,7 @@ class TokenGrantClientCredentialsHelper {
        */
       const mergedScope = client.mergedScope(client.scope, data.scope);
       if (!mergedScope) {
-        return OauthHelper.throwError(res, {
+        return OauthHelper.throwError(req, res, {
           error: "invalid_scope",
           error_description:
             "The requested scope is invalid, unknown, malformed, or exceeds the scope granted.",
@@ -41,7 +41,7 @@ class TokenGrantClientCredentialsHelper {
        * Check client type
        */
       if (client.clientType !== "confidential") {
-        return OauthHelper.throwError(res, {
+        return OauthHelper.throwError(req, res, {
           error: "unauthorized_client",
           error_description:
             "The authenticated client is not authorized to use this authorization grant type.",
@@ -67,7 +67,7 @@ class TokenGrantClientCredentialsHelper {
       } as IToken);
     } catch (error) {
       console.log(error);
-      return OauthHelper.throwError(res, {
+      return OauthHelper.throwError(req, res, {
         error: "server_error",
         error_description:
           "The authorization server encountered an unexpected condition that prevented it from fulfilling the request.",

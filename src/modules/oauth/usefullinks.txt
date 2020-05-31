@@ -12,3 +12,6 @@ https://developers.google.com/identity/protocols/oauth2/openid-connect#obtainuse
 
 OAUTH error status codes
 https://developers.getbase.com/docs/rest/articles/oauth2/errors
+
+OAuth HTTP error response reference
+https://docs.apigee.com/api-platform/reference/policies/oauth-http-status-code-reference

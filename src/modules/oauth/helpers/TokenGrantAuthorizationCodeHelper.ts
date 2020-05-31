@@ -41,13 +41,13 @@ class TokenGrantAuthorizationCodeHelper {
 
       if (oauthCode) {
         if (moment().isAfter(oauthCode.expiresAt)) {
-          return OauthHelper.throwError(res, {
+          return OauthHelper.throwError(req, res, {
             error: "invalid_grant",
             error_description:
               "The authorization code has been expired. Try to get another one.",
           });
         } else if (oauthCode.revokedAt) {
-          return OauthHelper.throwError(res, {
+          return OauthHelper.throwError(req, res, {
             error: "invalid_grant",
             error_description:
               "The authorization code has been revoked. Try to get another one.",
@@ -57,7 +57,7 @@ class TokenGrantAuthorizationCodeHelper {
            * Redirect URI must match
            */
           if (oauthCode.redirectUri !== data.redirect_uri) {
-            return OauthHelper.throwError(res, {
+            return OauthHelper.throwError(req, res, {
               error: "invalid_grant",
               error_description: `The redirect_uri parameter must be identical to the one included in the authorization request.`,
             });
@@ -68,7 +68,7 @@ class TokenGrantAuthorizationCodeHelper {
            */
           if (oauthCode.codeChallenge) {
             if (!data.code_verifier) {
-              return OauthHelper.throwError(res, {
+              return OauthHelper.throwError(req, res, {
                 error: "invalid_request",
                 error_description: `The "code_verifier" is required.`,
               });
@@ -76,7 +76,7 @@ class TokenGrantAuthorizationCodeHelper {
               switch (oauthCode.codeChallengeMethod) {
                 case "plain":
                   if (data.code_verifier !== oauthCode.codeChallenge) {
-                    return OauthHelper.throwError(res, {
+                    return OauthHelper.throwError(req, res, {
                       error: "invalid_grant",
                       error_description: `Code verifier and code challenge are not identical.`,
                     });
@@ -93,7 +93,7 @@ class TokenGrantAuthorizationCodeHelper {
                     .replace(/\//g, "_");
 
                   if (hashed !== oauthCode.codeChallenge) {
-                    return OauthHelper.throwError(res, {
+                    return OauthHelper.throwError(req, res, {
                       error: "invalid_grant",
                       error_description: `Hashed code verifier and code challenge are not identical.`,
                     });
@@ -124,14 +124,14 @@ class TokenGrantAuthorizationCodeHelper {
           } as IToken);
         }
       } else {
-        return OauthHelper.throwError(res, {
+        return OauthHelper.throwError(req, res, {
           error: "invalid_grant",
           error_description: `The authorization code is not valid.`,
         });
       }
     } catch (error) {
       console.log(error);
-      return OauthHelper.throwError(res, {
+      return OauthHelper.throwError(req, res, {
         error: "server_error",
         error_description:
           "The authorization server encountered an unexpected condition that prevented it from fulfilling the request.",

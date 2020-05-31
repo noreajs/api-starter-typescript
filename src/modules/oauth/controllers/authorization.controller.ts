@@ -64,6 +64,7 @@ class AuthorizationController {
        */
       if (payload.order === "cancel") {
         return OauthHelper.throwError(
+          req,
           res,
           {
             error: "access_denied",
@@ -99,7 +100,7 @@ class AuthorizationController {
         });
       }
     } else {
-      return OauthHelper.throwError(res, {
+      return OauthHelper.throwError(req, res, {
         error: "server_error",
         error_description:
           "The authorization server encountered an unexpected condition that prevented it from fulfilling the request.",
@@ -125,6 +126,7 @@ class AuthorizationController {
        */
       if (!["code", "token"].includes(data.response_type)) {
         return OauthHelper.throwError(
+          req,
           res,
           {
             error: "unsupported_response_type",
@@ -166,7 +168,7 @@ class AuthorizationController {
       );
     } catch (e) {
       console.log(e);
-      return OauthHelper.throwError(res, {
+      return OauthHelper.throwError(req, res, {
         error: "server_error",
         error_description:
           "The authorization server encountered an unexpected condition that prevented it from fulfilling the request.",
@@ -247,6 +249,7 @@ class AuthorizationController {
         );
         if (!mergedScope) {
           return OauthHelper.throwError(
+            req,
             res,
             {
               error: "invalid_scope",
@@ -316,6 +319,7 @@ class AuthorizationController {
            * Unsupported response type
            */
           return OauthHelper.throwError(
+            req,
             res,
             {
               error: "unsupported_response_type",
@@ -325,7 +329,7 @@ class AuthorizationController {
         }
       } catch (e) {
         console.log("e");
-        return OauthHelper.throwError(res, {
+        return OauthHelper.throwError(req, res, {
           error: "server_error",
           error_description:
             "The authorization server encountered an unexpected condition that prevented it from fulfilling the request.",
@@ -333,7 +337,7 @@ class AuthorizationController {
         });
       }
     } else {
-      return OauthHelper.throwError(res, {
+      return OauthHelper.throwError(req, res, {
         error: "access_denied",
         error_description: "Request denied. Data is corrupt.",
       });

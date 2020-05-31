@@ -35,7 +35,7 @@ class TokenGrantPasswordCredentialsHelper {
       );
 
       if (requiredParameters.length != 0) {
-        return OauthHelper.throwError(res, {
+        return OauthHelper.throwError(req, res, {
           error: "invalid_request",
           error_description: `${requiredParameters.join(", ")} ${
             requiredParameters.length > 1 ? "are required" : "is required"
@@ -53,7 +53,7 @@ class TokenGrantPasswordCredentialsHelper {
       );
 
       if (!passwordGrantData) {
-        return OauthHelper.throwError(res, {
+        return OauthHelper.throwError(req, res, {
           error: "invalid_grant",
           error_description: `Given credentials are not valid or do not match any record.`,
         });
@@ -68,7 +68,7 @@ class TokenGrantPasswordCredentialsHelper {
         data.scope
       );
       if (!mergedScope) {
-        return OauthHelper.throwError(res, {
+        return OauthHelper.throwError(req, res, {
           error: "invalid_scope",
           error_description: "The request scope must be in client scope.",
         });
@@ -95,7 +95,7 @@ class TokenGrantPasswordCredentialsHelper {
       } as IToken);
     } catch (error) {
       console.log(error);
-      return OauthHelper.throwError(res, {
+      return OauthHelper.throwError(req, res, {
         error: "server_error",
         error_description:
           "The authorization server encountered an unexpected condition that prevented it from fulfilling the request.",

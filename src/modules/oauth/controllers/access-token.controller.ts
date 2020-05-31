@@ -37,7 +37,7 @@ class AccessTokenController {
 
     try {
       if (!data.client_id) {
-        return OauthHelper.throwError(res, {
+        return OauthHelper.throwError(req, res, {
           error: "invalid_request",
           error_description:
             "The client_id is required. You can send it with client_secret in body or via Basic Auth header.",
@@ -51,7 +51,7 @@ class AccessTokenController {
        * Client has to exist
        */
       if (!client) {
-        return OauthHelper.throwError(res, {
+        return OauthHelper.throwError(req, res, {
           error: "invalid_client",
           error_description: "Unknown client",
         });
@@ -59,7 +59,7 @@ class AccessTokenController {
 
       // Client revoked
       if (client.revokedAt) {
-        return OauthHelper.throwError(res, {
+        return OauthHelper.throwError(req, res, {
           error: "invalid_client",
           error_description:
             "The client related to this request has been revoked.",
@@ -71,7 +71,7 @@ class AccessTokenController {
        * ****************
        */
       if (data.scope && !client.validateScope(data.scope)) {
-        return OauthHelper.throwError(res, {
+        return OauthHelper.throwError(req, res, {
           error: "invalid_scope",
           error_description:
             "The requested scope is invalid, unknown, malformed, or exceeds the scope granted.",
@@ -79,7 +79,7 @@ class AccessTokenController {
       }
 
       if (client.clientType === "confidential" && !data.client_secret) {
-        return OauthHelper.throwError(res, {
+        return OauthHelper.throwError(req, res, {
           error: "invalid_request",
           error_description:
             "The secret_secret is required for confidential client. You can send it with client_id in body or via Basic Auth header.",
@@ -94,7 +94,7 @@ class AccessTokenController {
         data.client_secret.length !== 0 &&
         data.client_secret !== client.secretKey
       ) {
-        return OauthHelper.throwError(res, {
+        return OauthHelper.throwError(req, res, {
           error: "invalid_client",
           error_description: "Invalid client secret.",
         });
@@ -138,7 +138,7 @@ class AccessTokenController {
             this.oauthContext
           );
         default:
-          return OauthHelper.throwError(res, {
+          return OauthHelper.throwError(req, res, {
             error: "unsupported_grant_type",
             error_description:
               "The authorization grant type is not supported by the authorization server.",
@@ -146,7 +146,7 @@ class AccessTokenController {
       }
     } catch (e) {
       console.log(e);
-      return OauthHelper.throwError(res, {
+      return OauthHelper.throwError(req, res, {
         error: "server_error",
         error_description:
           "The authorization server encountered an unexpected condition that prevented it from fulfilling the request.",

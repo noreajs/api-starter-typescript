@@ -37,7 +37,7 @@ class TokenGrantRefreshTokenHelper {
        * ****************
        */
       if (!client.validateScope(data.scope)) {
-        return OauthHelper.throwError(res, {
+        return OauthHelper.throwError(req, res, {
           error: "invalid_scope",
           error_description: "The request scope must be in client scope.",
         });
@@ -53,7 +53,7 @@ class TokenGrantRefreshTokenHelper {
         UtilsHelper.checkAttributes<ITokenRequest>(["refresh_token"], data)
           .length !== 0
       ) {
-        return OauthHelper.throwError(res, {
+        return OauthHelper.throwError(req, res, {
           error: "invalid_request",
           error_description: `refresh_token is required.`,
         });
@@ -80,7 +80,7 @@ class TokenGrantRefreshTokenHelper {
 
         // refresh token doesn't exist
         if (!oauthRefreshToken) {
-          return OauthHelper.throwError(res, {
+          return OauthHelper.throwError(req, res, {
             error: "invalid_grant",
             error_description: `Unknown refresh token.`,
           });
@@ -88,7 +88,7 @@ class TokenGrantRefreshTokenHelper {
 
         // refresh token expired
         if (moment().isAfter(oauthRefreshToken.expiresAt)) {
-          return OauthHelper.throwError(res, {
+          return OauthHelper.throwError(req, res, {
             error: "invalid_grant",
             error_description: `The refresh token is expired.`,
           });
@@ -96,7 +96,7 @@ class TokenGrantRefreshTokenHelper {
 
         // refresh token revoked
         if (oauthRefreshToken.revokedAt) {
-          return OauthHelper.throwError(res, {
+          return OauthHelper.throwError(req, res, {
             error: "invalid_grant",
             error_description: `The refresh token is revoked.`,
           });
@@ -107,7 +107,7 @@ class TokenGrantRefreshTokenHelper {
          * *******************************
          */
         if (data.client_id !== refreshTokenData.client_id) {
-          return OauthHelper.throwError(res, {
+          return OauthHelper.throwError(req, res, {
             error: "invalid_grant",
             error_description: `Invalid refresh token. client_id does not match.`,
           });
@@ -126,7 +126,7 @@ class TokenGrantRefreshTokenHelper {
           const newScopes = data.scope.split(" ");
           for (const scope of newScopes) {
             if (currentScopes.includes(scope)) {
-              return OauthHelper.throwError(res, {
+              return OauthHelper.throwError(req, res, {
                 error: "invalid_scope",
                 error_description: `${scope} is already in the previous access token scope.`,
               });
@@ -205,13 +205,13 @@ class TokenGrantRefreshTokenHelper {
         /**
          * Invalid signature
          */
-        return OauthHelper.throwError(res, {
+        return OauthHelper.throwError(req, res, {
           error: "invalid_grant",
           error_description: error.message,
         });
       }
     } catch (error) {
-      return OauthHelper.throwError(res, {
+      return OauthHelper.throwError(req, res, {
         error: "server_error",
         error_description:
           "The authorization server encountered an unexpected condition that prevented it from fulfilling the request.",

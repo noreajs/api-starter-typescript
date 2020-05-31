@@ -1,10 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import IAuthCodeRequest from "../interfaces/IAuthCodeRequest";
 import UtilsHelper from "../helpers/UtilsHelper";
-import HttpStatus from "../../../common/HttpStatus";
 import OauthClient from "../models/OauthClient";
-import IOauthError from "../interfaces/IOauthError";
-import UrlHelper from "../helpers/UrlHelper";
 import OauthHelper from "../helpers/OauthHelper";
 
 class AuthorizationMiddleware {
@@ -29,6 +26,7 @@ class AuthorizationMiddleware {
 
       if (requiredParameters.length != 0) {
         return OauthHelper.throwError(
+          req,
           res,
           {
             error: "invalid_request",
@@ -49,6 +47,7 @@ class AuthorizationMiddleware {
         !["plain", "S256"].includes(data.code_challenge_method)
       ) {
         return OauthHelper.throwError(
+          req,
           res,
           {
             error: "invalid_request",
@@ -70,6 +69,7 @@ class AuthorizationMiddleware {
        */
       if (!client) {
         return OauthHelper.throwError(
+          req,
           res,
           {
             error: "invalid_request",
@@ -83,6 +83,7 @@ class AuthorizationMiddleware {
       // Client revoked
       if (client.revokedAt) {
         return OauthHelper.throwError(
+          req,
           res,
           {
             error: "access_denied",
@@ -96,6 +97,7 @@ class AuthorizationMiddleware {
 
       if (!client.redirectURIs.includes(data.redirect_uri)) {
         return OauthHelper.throwError(
+          req,
           res,
           {
             error: "invalid_request",
@@ -113,6 +115,7 @@ class AuthorizationMiddleware {
        */
       if (data.scope && !client.validateScope(data.scope)) {
         return OauthHelper.throwError(
+          req,
           res,
           {
             error: "invalid_scope",
@@ -128,6 +131,7 @@ class AuthorizationMiddleware {
        */
       if (!["code", "token"].includes(data.response_type)) {
         return OauthHelper.throwError(
+          req,
           res,
           {
             error: "unsupported_response_type",
@@ -149,7 +153,7 @@ class AuthorizationMiddleware {
       next();
     } catch (e) {
       console.log(e);
-      return OauthHelper.throwError(res, {
+      return OauthHelper.throwError(req, res, {
         error: "server_error",
         error_description:
           "The authorization server encountered an unexpected condition that prevented it from fulfilling the request.",
