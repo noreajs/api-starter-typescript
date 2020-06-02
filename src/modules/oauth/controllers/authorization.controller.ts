@@ -12,9 +12,11 @@ import IAuthorizationResponse from "../interfaces/IAuthorizationResponse";
 import UtilsHelper from "../helpers/UtilsHelper";
 import path from "path";
 import OauthHelper from "../helpers/OauthHelper";
-import OauthController from "./OauthController";
+import OauthController from "./oauth.controller";
 
-class AuthorizationController extends OauthController{
+class AuthorizationController extends OauthController {
+  OAUTH_DIALOG_PATH = "oauth/v2/dialog";
+  OAUTH_AUTHORIZE_PATH = "oauth/v2/authorize";
 
   /**
    * Get authorization dialog
@@ -73,8 +75,12 @@ class AuthorizationController extends OauthController{
           providerName: this.oauthContext.providerName,
           currentYear: new Date().getFullYear(),
           oauthAuthCodeId: oauthCode._id,
-          formAction: `${UrlHelper.getFullUrl(req)}/oauth/authorize`,
-          cancelUrl: `${UrlHelper.getFullUrl(req)}/oauth/dialog?p=${Buffer.from(
+          formAction: `${UrlHelper.getFullUrl(req)}/${
+            this.OAUTH_AUTHORIZE_PATH
+          }`,
+          cancelUrl: `${UrlHelper.getFullUrl(req)}/${
+            this.OAUTH_DIALOG_PATH
+          }?p=${Buffer.from(
             JSON.stringify({ oauthAuthCodeId: oauthCode._id, order: "cancel" })
           ).toString("base64")}`,
           error: payload.error,
@@ -157,7 +163,7 @@ class AuthorizationController extends OauthController{
 
       return res.redirect(
         HttpStatus.TemporaryRedirect,
-        `${UrlHelper.getFullUrl(req)}/oauth/dialog?p=${Buffer.from(
+        `${UrlHelper.getFullUrl(req)}/${this.OAUTH_DIALOG_PATH}?p=${Buffer.from(
           JSON.stringify({ oauthAuthCodeId: oauthCode._id })
         ).toString("base64")}`
       );
@@ -191,7 +197,7 @@ class AuthorizationController extends OauthController{
     if (requiredFields.length !== 0) {
       return res.redirect(
         HttpStatus.MovedPermanently,
-        `${UrlHelper.getFullUrl(req)}/oauth/dialog?p=${Buffer.from(
+        `${UrlHelper.getFullUrl(req)}/${this.OAUTH_DIALOG_PATH}?p=${Buffer.from(
           JSON.stringify({
             oauthAuthCodeId: formData.oauthAuthCodeId,
             error: {
@@ -221,7 +227,9 @@ class AuthorizationController extends OauthController{
         if (!endUserData) {
           return res.redirect(
             HttpStatus.MovedPermanently,
-            `${UrlHelper.getFullUrl(req)}/oauth/dialog?p=${Buffer.from(
+            `${UrlHelper.getFullUrl(req)}/${
+              this.OAUTH_DIALOG_PATH
+            }?p=${Buffer.from(
               JSON.stringify({
                 oauthAuthCodeId: formData.oauthAuthCodeId,
                 error: {

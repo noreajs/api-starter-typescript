@@ -5,19 +5,25 @@ import oauthClientRoutes from "./oauth-client.routes";
 import authorizationRoutes from "./authorization.routes";
 import accessTokenRoutes from "./access-token.routes";
 import OauthContext from "../OauthContext";
+import oauthScopeRoutes from "./oauth-scope.routes";
 
 export default (app: Application, oauthContext: OauthContext) => {
   /**
    * Auth routes
    */
   app.use(
-    "/oauth",
+    "/oauth/v2",
     Route.group({
       routes: (module) => {
         /**
          * Clients routes
          */
         oauthClientRoutes(module, oauthContext);
+
+        /**
+         * Scope routes
+         */
+        oauthScopeRoutes(module, oauthContext);
 
         /**
          * Authorization routes

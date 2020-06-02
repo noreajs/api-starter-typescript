@@ -1,6 +1,10 @@
 import IEndUserAuthData from "./IEndUserAuthData";
 import { JwtTokenReservedClaimsType } from "./IJwt";
 
+export type SubLookupFuncType = {
+  (sub: string): any | Promise<any>;
+};
+
 export type OauthExpiresInType = {
   confidential: {
     internal: number;
@@ -25,17 +29,17 @@ export interface IOauthContext {
     | "ES256"
     | "ES384"
     | "ES512";
-    authenticationLogic: (
-      username: string,
-      password: string
-    ) => Promise<IEndUserAuthData | undefined> | IEndUserAuthData | undefined;
-    supportedOpenIdStandardClaims: (
-      userId: string
-    ) =>
-      | Promise<JwtTokenReservedClaimsType | undefined>
-      | JwtTokenReservedClaimsType
-      | undefined;
-  rsaKeysFolderPath?: string;
+  authenticationLogic: (
+    username: string,
+    password: string
+  ) => Promise<IEndUserAuthData | undefined> | IEndUserAuthData | undefined;
+  supportedOpenIdStandardClaims: (
+    userId: string
+  ) =>
+    | Promise<JwtTokenReservedClaimsType | undefined>
+    | JwtTokenReservedClaimsType
+    | undefined;
+  subLookup?: SubLookupFuncType;
   tokenType?: "Bearer";
   authorizationCodeLifeTime?: number;
   accessTokenExpiresIn?: OauthExpiresInType;

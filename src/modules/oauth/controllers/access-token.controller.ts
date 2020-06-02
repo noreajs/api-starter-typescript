@@ -2,20 +2,14 @@ import { Request, Response } from "express";
 import ITokenRequest from "../interfaces/ITokenRequest";
 import OauthHelper from "../helpers/OauthHelper";
 import HttpStatus from "../../../common/HttpStatus";
-import IOauthError from "../interfaces/IOauthError";
 import OauthClient from "../models/OauthClient";
 import TokenGrantAuthorizationCodeHelper from "../helpers/TokenGrantAuthorizationCodeHelper";
 import TokenGrantClientCredentialsHelper from "../helpers/TokenGrantClientCredentialsHelper";
 import TokenGrantPasswordCredentialsHelper from "../helpers/TokenGrantPasswordCredentialsHelper";
 import TokenGrantRefreshTokenHelper from "../helpers/TokenGrantRefreshTokenHelper";
-import OauthContext from "../OauthContext";
+import OauthController from "./oauth.controller";
 
-class AccessTokenController {
-  oauthContext: OauthContext;
-
-  constructor(oauthContext: OauthContext) {
-    this.oauthContext = oauthContext;
-  }
+class AccessTokenController extends OauthController{
 
   /**
    * Generate token

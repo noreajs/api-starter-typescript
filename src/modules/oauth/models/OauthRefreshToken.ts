@@ -2,14 +2,11 @@ import { mongooseModel, Document, Schema } from "@noreajs/mongoose";
 import { IOauthAccessToken } from "./OauthAccessToken";
 
 export interface IOauthRefreshTokenAttempt {
-  ip: any;
-  userAgent?: string;
-  attemptedAt: Date;
+  
 }
 
 export interface IOauthRefreshToken extends Document {
   accessToken: IOauthAccessToken;
-  attemps: IOauthRefreshTokenAttempt[];
   revokedAt?: Date;
   expiresAt: Date;
 }
@@ -25,7 +22,6 @@ export default mongooseModel<IOauthRefreshToken>({
         autopopulate: true,
         required: [true, "The access token is required."],
       },
-      attemps: [Schema.Types.Mixed],
       revokedAt: {
         type: Schema.Types.Date,
       },

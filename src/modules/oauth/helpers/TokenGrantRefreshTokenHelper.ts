@@ -3,7 +3,9 @@ import { Request, Response } from "express";
 import jwt from "jsonwebtoken";
 import { IOauthClient } from "../models/OauthClient";
 import HttpStatus from "../../../common/HttpStatus";
-import OauthRefreshToken from "../models/OauthRefreshToken";
+import OauthRefreshToken, {
+  IOauthRefreshToken,
+} from "../models/OauthRefreshToken";
 import OauthAccessToken, {
   IOauthAccessToken,
 } from "../models/OauthAccessToken";
@@ -86,6 +88,14 @@ class TokenGrantRefreshTokenHelper {
           });
         }
 
+        // is related access token still active
+        if (moment().isBefore(oauthRefreshToken.accessToken.expiresAt)) {
+          return OauthHelper.throwError(req, res, {
+            error: "invalid_grant",
+            error_description: `I access token associated with the refresh token is still active.`,
+          });
+        }
+
         // refresh token expired
         if (moment().isAfter(oauthRefreshToken.expiresAt)) {
           return OauthHelper.throwError(req, res, {
@@ -139,67 +149,34 @@ class TokenGrantRefreshTokenHelper {
         }
 
         /**
-         * ACCESS TOKEN AND REFRESH_TOKEN
-         * *******************************************
+         * Revocation of the refresh token
          */
-
-        // access token expires at
-        const accessTokenExpiresAt = moment()
-          .add(oauthContext.accessTokenExpiresIn.public.external, "seconds")
-          .toDate();
-
-        /**
-         * Update and save oauth access token data
-         */
-        await OauthAccessToken.updateOne(
-          {
-            _id: oauthRefreshToken.accessToken._id,
-          },
-          {
-            scope: newAccessTokenScope,
-            expiresAt: accessTokenExpiresAt,
-          } as Partial<IOauthAccessToken>
-        );
-
-        /**
-         * Save refresh attempts
-         * *********************************************
-         */
-        const attemps = oauthRefreshToken.attemps ?? [];
-        attemps.push({
-          ip: req.ip,
-          userAgent: req.headers["user-agent"],
-          attemptedAt: new Date(),
-        });
-
         await OauthRefreshToken.updateOne(
           {
             _id: oauthRefreshToken._id,
           },
           {
-            attemps: attemps,
-          } as Partial<IOauthAccessToken>
+            revokedAt: new Date(),
+          } as Partial<IOauthRefreshToken>
         );
 
         /**
          * Create JWT token
          * ******************************
          */
-        const token = OauthHelper.jwtSign(req, oauthContext, {
-          client_id: client.clientId,
+        const tokens = await client.newAccessToken({
+          grant: "refresh_token",
+          oauthContext: oauthContext,
+          req: req,
           scope: newAccessTokenScope,
-          azp: client.clientId,
-          aud: client.clientId,
-          sub: oauthRefreshToken.accessToken.userId,
-          jti: oauthRefreshToken.accessToken._id.toString(),
-          exp: accessTokenExpiresAt.getTime(),
+          subject: oauthRefreshToken.accessToken.userId,
         });
 
         return res.status(HttpStatus.Ok).json({
-          access_token: token,
+          access_token: tokens.token,
           token_type: oauthContext.tokenType,
-          expires_in: oauthContext.refreshTokenExpiresIn.public.external,
-          refresh_token: data.refresh_token,
+          expires_in: tokens.accessTokenExpireIn,
+          refresh_token: tokens.refreshToken,
         } as IToken);
       } catch (error) {
         /**
@@ -211,6 +188,7 @@ class TokenGrantRefreshTokenHelper {
         });
       }
     } catch (error) {
+      console.log(error)
       return OauthHelper.throwError(req, res, {
         error: "server_error",
         error_description:

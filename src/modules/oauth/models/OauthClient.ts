@@ -19,7 +19,8 @@ export type OauthClientGrantType =
   | "implicit"
   | "client_credentials"
   | "password"
-  | "authorization_code";
+  | "authorization_code"
+  | "refresh_token";
 export type OauthTokenType = {
   token: string;
   accessTokenExpireIn: number;
@@ -138,7 +139,7 @@ export default mongooseModel<IOauthClient>({
       },
       scope: {
         type: Schema.Types.String,
-        required: [true, 'The scope is required.'],
+        required: [true, "The scope is required."],
         validate: [
           {
             validator: function (value: string) {
@@ -162,6 +163,8 @@ export default mongooseModel<IOauthClient>({
       if (this.scope !== "*") {
         if (scope === "*") {
           return false;
+        } else if (!scope) {
+          return true;
         } else {
           const clientScopes = this.scope.split(" ");
           const scopes = scope.split(" ");
@@ -282,14 +285,18 @@ export default mongooseModel<IOauthClient>({
            * Refresh token
            * **********************
            */
-          r.refreshToken = OauthHelper.jwtSign(params.req, params.oauthContext, {
-            client_id: this.clientId,
-            azp: this.domaine ?? this.clientId,
-            aud: this.domaine ?? this.clientId,
-            sub: params.subject,
-            jti: oauthRefreshToken._id.toString(),
-            exp: oauthRefreshToken.expiresAt.getTime(),
-          });
+          r.refreshToken = OauthHelper.jwtSign(
+            params.req,
+            params.oauthContext,
+            {
+              client_id: this.clientId,
+              azp: this.domaine ?? this.clientId,
+              aud: this.domaine ?? this.clientId,
+              sub: params.subject,
+              jti: oauthRefreshToken._id.toString(),
+              exp: oauthRefreshToken.expiresAt.getTime(),
+            }
+          );
         }
 
         /**
@@ -340,7 +347,7 @@ export default mongooseModel<IOauthClient>({
      * Before save
      * ******************************
      */
-    sc.pre<IOauthClient>("validate", function (next: HookNextFunction) {
+    sc.pre<IOauthClient>("save", function (next: HookNextFunction) {
       /**
        * Secret code availability
        * **********************

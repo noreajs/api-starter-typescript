@@ -1,6 +1,7 @@
 import authMiddleware from "../middlewares/auth.middleware"
 import { Application } from "express"
 import userController from "../controllers/user.controller"
+import Oauth from "../modules/oauth/Oauth"
 
 export default (app: Application) => {
 
@@ -18,7 +19,7 @@ export default (app: Application) => {
      * Get user lists
      */
     app.route('/users').get([
-        authMiddleware.validJwtNeeded,
+        Oauth.authorize(),
         authMiddleware.adminOnly,
         userController.all
     ])
@@ -27,7 +28,7 @@ export default (app: Application) => {
      * update user lock state (locked or unlocked)
      */
     app.route('/users/:id/lock-state').put([
-        authMiddleware.validJwtNeeded,
+        Oauth.authorize(),
         authMiddleware.adminOnly,
         userController.editLockedState
     ])
@@ -36,7 +37,7 @@ export default (app: Application) => {
      * Show user
      */
     app.route('/users/:id').get([
-        authMiddleware.validJwtNeeded,
+        Oauth.authorize(),
         authMiddleware.adminOnly,
         userController.show
     ])
@@ -45,7 +46,7 @@ export default (app: Application) => {
      * Edit user
      */
     app.route('/users/:id').put([
-        authMiddleware.validJwtNeeded,
+        Oauth.authorize(),
         authMiddleware.adminOnly,
         // userController.edit
     ])
@@ -54,7 +55,7 @@ export default (app: Application) => {
      * Get the current user details
      */
     app.route('/current-user').get([
-        authMiddleware.validJwtNeeded,
+        Oauth.authorize(),
         userController.currentUser
     ])
 
@@ -62,7 +63,7 @@ export default (app: Application) => {
      * Delete user account
      */
     app.route('/users/:id').delete([
-        authMiddleware.validJwtNeeded,
+        Oauth.authorize(),
         userController.delete
     ])
 }

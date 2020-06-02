@@ -1,10 +1,4 @@
-import {
-  OauthExpiresInType,
-  IOauthContext,
-} from "./interfaces/IOauthContext";
-import { Request } from "express";
-import UrlHelper from "./helpers/UrlHelper";
-import UtilsHelper from "./helpers/UtilsHelper";
+import { OauthExpiresInType, IOauthContext, SubLookupFuncType } from "./interfaces/IOauthContext";
 import IEndUserAuthData from "./interfaces/IEndUserAuthData";
 import { JwtTokenReservedClaimsType } from "./interfaces/IJwt";
 
@@ -21,25 +15,21 @@ export default class OauthContext {
     | "ES256"
     | "ES384"
     | "ES512";
-    authenticationLogic: (
-      username: string,
-      password: string
-    ) => Promise<IEndUserAuthData | undefined> | IEndUserAuthData | undefined;
-    supportedOpenIdStandardClaims: (
-      userId: string
-    ) =>
-      | Promise<JwtTokenReservedClaimsType | undefined>
-      | JwtTokenReservedClaimsType
-      | undefined;
-  rsaKeysFolderPath: string;
+  authenticationLogic: (
+    username: string,
+    password: string
+  ) => Promise<IEndUserAuthData | undefined> | IEndUserAuthData | undefined;
+  supportedOpenIdStandardClaims: (
+    userId: string
+  ) =>
+    | Promise<JwtTokenReservedClaimsType | undefined>
+    | JwtTokenReservedClaimsType
+    | undefined;
+  subLookup?: SubLookupFuncType;
   tokenType: "Bearer";
   authorizationCodeLifeTime: number;
   accessTokenExpiresIn: OauthExpiresInType;
   refreshTokenExpiresIn: OauthExpiresInType;
-  rsaKeys: {
-    publicKey: string;
-    privateKey: string;
-  };
 
   constructor(init: IOauthContext) {
     /**
@@ -70,11 +60,7 @@ export default class OauthContext {
         external: 60 * 60 * 24 * 7, // 1 week
       },
     };
-    this.rsaKeysFolderPath = init.rsaKeysFolderPath ?? "rsa-keys";
     this.secretKey = init.secretKey;
     this.tokenType = init.tokenType ?? "Bearer";
-    // generate RSA Keys
-    this.rsaKeys = UtilsHelper.generateRsaKeys(this.rsaKeysFolderPath);
-
   }
 }

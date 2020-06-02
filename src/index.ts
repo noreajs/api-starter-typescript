@@ -69,6 +69,9 @@ const app = new NoreaApp(apiRoutes, {
               return undefined;
             }
           },
+          subLookup: async (sub: string) => {
+            return await User.findById(sub);
+          },
         });
       },
     });

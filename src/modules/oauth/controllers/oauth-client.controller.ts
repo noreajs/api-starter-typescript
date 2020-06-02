@@ -5,14 +5,9 @@ import crypto from "crypto";
 import { v4 as uuidV4 } from "uuid";
 import { serializeError } from "serialize-error";
 import { linearizeErrors } from "@noreajs/mongoose";
-import OauthContext from "../OauthContext";
+import OauthController from "./oauth.controller";
 
-class OauthClientController {
-  oauthContext: OauthContext;
-
-  constructor(oauthContext: OauthContext) {
-    this.oauthContext = oauthContext;
-  }
+class OauthClientController extends OauthController{
 
   /**
    * Get all clients
@@ -41,7 +36,7 @@ class OauthClientController {
       // client id
       const clientId = uuidV4();
       // create a new oauth client
-      const client = new OauthClient({
+      const client = await new OauthClient({
         clientId: clientId,
         name: req.body.name,
         domaine: req.body.domaine,
@@ -53,14 +48,11 @@ class OauthClientController {
         clientProfile: req.body.clientProfile,
         secretKey: crypto.randomBytes(64).toString("hex"),
         redirectURIs: req.body.redirectURIs,
-      } as Partial<IOauthClient>);
-
-      // save change
-      await client.save();
+      } as Partial<IOauthClient>).save();
 
       return res.status(HttpStatus.Created).json(client);
     } catch (e) {
-      linearizeErrors(e);
+      // linearizeErrors(e);
       return res.status(HttpStatus.InternalServerError).json(serializeError(e));
     }
   };
