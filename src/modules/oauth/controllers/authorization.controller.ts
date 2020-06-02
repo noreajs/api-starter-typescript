@@ -34,73 +34,104 @@ class AuthorizationController extends OauthController {
     );
 
     // request payload
-    const payload = JSON.parse(
-      Buffer.from(req.query.p, "base64").toString("ascii")
-    ) as {
-      oauthAuthCodeId: string;
-      order?: "cancel";
-      inputs?: {
-        [key: string]: string;
-      };
-      error?: {
-        message: string;
-        errors: {
+    // const payload = JSON.parse(
+    //   Buffer.from(req.query.p, "base64").toString("ascii")
+    // ) as {
+    //   oauthAuthCodeId: string;
+    //   order?: "cancel";
+    //   inputs?: {
+    //     [key: string]: string;
+    //   };
+    //   error?: {
+    //     message: string;
+    //     errors: {
+    //       [key: string]: string;
+    //     };
+    //   };
+    // };
+
+    if (req.session) {
+      const payload = {
+        oauthAuthCodeId: req.session.oauthAuthCodeId,
+        error: req.session.error,
+        inputs: req.session.inputs,
+        order: req.query.order,
+      } as {
+        oauthAuthCodeId: string;
+        order?: "cancel";
+        inputs?: {
           [key: string]: string;
         };
+        error?: {
+          message: string;
+          errors: {
+            [key: string]: string;
+          };
+        };
       };
-    };
 
-    // load auth code
-    const oauthCode = await OauthAuthCode.findById(payload.oauthAuthCodeId);
+      // load auth code
+      const oauthCode = await OauthAuthCode.findById(payload.oauthAuthCodeId);
 
-    // load scopes
-    if (oauthCode) {
-      /**
-       * Authentification cancelled
-       * ******************************
-       */
-      if (payload.order === "cancel") {
-        return OauthHelper.throwError(
-          req,
-          res,
-          {
-            error: "access_denied",
-            error_description: "The resource owner denied the request.",
-            state: oauthCode.state,
-          },
-          oauthCode.redirectUri
-        );
+      // load scopes
+      if (oauthCode) {
+        /**
+         * Authentification cancelled
+         * ******************************
+         */
+        if (payload.order === "cancel") {
+          return OauthHelper.throwError(
+            req,
+            res,
+            {
+              error: "access_denied",
+              error_description: "The resource owner denied the request.",
+              state: oauthCode.state,
+            },
+            oauthCode.redirectUri
+          );
+        } else {
+          return res.render(authLoginPath, {
+            providerName: this.oauthContext.providerName,
+            currentYear: new Date().getFullYear(),
+            oauthAuthCodeId: oauthCode._id,
+            formAction: `${UrlHelper.getFullUrl(req)}/${
+              this.OAUTH_AUTHORIZE_PATH
+            }`,
+            cancelUrl: `${UrlHelper.getFullUrl(req)}/${
+              this.OAUTH_DIALOG_PATH
+            }?p=${Buffer.from(
+              JSON.stringify({
+                oauthAuthCodeId: oauthCode._id,
+                order: "cancel",
+              })
+            ).toString("base64")}`,
+            error: payload.error,
+            inputs: payload.inputs ?? {
+              username: "",
+              password: "",
+            },
+            client: {
+              name: oauthCode.client.name,
+              domaine: oauthCode.client.domaine,
+              logo: oauthCode.client.logo,
+              description: oauthCode.client.description,
+              internal: oauthCode.client.internal,
+              clientType: oauthCode.client.clientType,
+              clientProfile: oauthCode.client.clientProfile,
+              scope: oauthCode.client.scope,
+            } as Partial<IOauthClient>,
+          });
+        }
       } else {
-        return res.render(authLoginPath, {
-          providerName: this.oauthContext.providerName,
-          currentYear: new Date().getFullYear(),
-          oauthAuthCodeId: oauthCode._id,
-          formAction: `${UrlHelper.getFullUrl(req)}/${
-            this.OAUTH_AUTHORIZE_PATH
-          }`,
-          cancelUrl: `${UrlHelper.getFullUrl(req)}/${
-            this.OAUTH_DIALOG_PATH
-          }?p=${Buffer.from(
-            JSON.stringify({ oauthAuthCodeId: oauthCode._id, order: "cancel" })
-          ).toString("base64")}`,
-          error: payload.error,
-          inputs: payload.inputs ?? {
-            username: "",
-            password: "",
-          },
-          client: {
-            name: oauthCode.client.name,
-            domaine: oauthCode.client.domaine,
-            logo: oauthCode.client.logo,
-            description: oauthCode.client.description,
-            internal: oauthCode.client.internal,
-            clientType: oauthCode.client.clientType,
-            clientProfile: oauthCode.client.clientProfile,
-            scope: oauthCode.client.scope,
-          } as Partial<IOauthClient>,
+        return OauthHelper.throwError(req, res, {
+          error: "server_error",
+          error_description:
+            "The authorization server encountered an unexpected condition that prevented it from fulfilling the request.",
         });
       }
     } else {
+      // no session
       return OauthHelper.throwError(req, res, {
         error: "server_error",
         error_description:
@@ -161,11 +192,16 @@ class AuthorizationController extends OauthController {
       // save codes
       await oauthCode.save();
 
+      // set session
+      if (req.session) {
+        req.session.oauthAuthCodeId = oauthCode._id;
+      } else {
+        throw Error("No session defined. Express session required.");
+      }
+
       return res.redirect(
         HttpStatus.TemporaryRedirect,
-        `${UrlHelper.getFullUrl(req)}/${this.OAUTH_DIALOG_PATH}?p=${Buffer.from(
-          JSON.stringify({ oauthAuthCodeId: oauthCode._id })
-        ).toString("base64")}`
+        `${UrlHelper.getFullUrl(req)}/${this.OAUTH_DIALOG_PATH}`
       );
     } catch (e) {
       console.log(e);
@@ -189,28 +225,6 @@ class AuthorizationController extends OauthController {
       password: string;
     };
 
-    // checking required field
-    const requiredFields = UtilsHelper.checkAttributes<any>(
-      ["username", "password"],
-      formData
-    );
-    if (requiredFields.length !== 0) {
-      return res.redirect(
-        HttpStatus.MovedPermanently,
-        `${UrlHelper.getFullUrl(req)}/${this.OAUTH_DIALOG_PATH}?p=${Buffer.from(
-          JSON.stringify({
-            oauthAuthCodeId: formData.oauthAuthCodeId,
-            error: {
-              message: `${requiredFields.join(", ")} ${
-                requiredFields.length > 1 ? "are" : "is"
-              } required.`,
-            },
-            inputs: formData,
-          })
-        ).toString("base64")}`
-      );
-    }
-
     /**
      * load auth code
      * *****************************************
@@ -219,25 +233,50 @@ class AuthorizationController extends OauthController {
 
     if (oauthCode) {
       try {
+        // checking required field
+        const requiredFields = UtilsHelper.checkAttributes<any>(
+          ["username", "password"],
+          formData
+        );
+        
+        if (requiredFields.length !== 0) {
+          // set session
+          if (req.session) {
+            req.session.error = {
+              message: `${requiredFields.join(", ")} ${
+                requiredFields.length > 1 ? "are" : "is"
+              } required.`,
+            };
+            req.session.inputs = formData;
+          } else {
+            throw Error("No session defined. Express session required.");
+          }
+
+          return res.redirect(
+            HttpStatus.MovedPermanently,
+            `${UrlHelper.getFullUrl(req)}/${this.OAUTH_DIALOG_PATH}`
+          );
+        }
+
         const endUserData = await this.oauthContext.authenticationLogic(
           formData.username,
           formData.password
         );
 
         if (!endUserData) {
+          // set session
+          if (req.session) {
+            req.session.error = {
+              message: `Given credentials are not valid or do not match any record.`,
+            };
+            req.session.inputs = formData;
+          } else {
+            throw Error("No session defined. Express session required.");
+          }
+
           return res.redirect(
             HttpStatus.MovedPermanently,
-            `${UrlHelper.getFullUrl(req)}/${
-              this.OAUTH_DIALOG_PATH
-            }?p=${Buffer.from(
-              JSON.stringify({
-                oauthAuthCodeId: formData.oauthAuthCodeId,
-                error: {
-                  message: `Given credentials are not valid or do not match any record.`,
-                },
-                inputs: formData,
-              })
-            ).toString("base64")}`
+            `${UrlHelper.getFullUrl(req)}/${this.OAUTH_DIALOG_PATH}`
           );
         }
 

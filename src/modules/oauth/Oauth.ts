@@ -3,6 +3,7 @@ import { IOauthContext } from "./interfaces/IOauthContext";
 import oauthRoutes from "./routes/oauth.routes";
 import OauthContext from "./OauthContext";
 import jwt from "jsonwebtoken";
+import session from "express-session";
 import { IJwtTokenPayload } from "./interfaces/IJwt";
 import HttpStatus from "../../common/HttpStatus";
 import OauthAccessToken from "./models/OauthAccessToken";
@@ -22,6 +23,18 @@ class Oauth {
   init(initContext: IOauthContext) {
     // create context
     Oauth.context = new OauthContext(initContext);
+
+    // set session
+    this.app.use(session({
+      secret: Oauth.context.secretKey,
+      resave: false,
+      saveUninitialized: true,
+      cookie: {
+        httpOnly: true,
+        secure: this.app.get('env') === "production",
+      }
+    }))
+
     // Add oauth routes
     oauthRoutes(this.app, Oauth.context);
   }
