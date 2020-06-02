@@ -58,7 +58,7 @@ export interface IOauthClient extends Document {
   mergedScope: (
     subjectScope: string,
     requestScope?: string
-  ) => string | undefined;
+  ) => string;
 }
 
 export default mongooseModel<IOauthClient>({
@@ -312,21 +312,17 @@ export default mongooseModel<IOauthClient>({
     mergedScope: function (
       subjectScope: string,
       requestScope?: string
-    ): string | undefined {
+    ): string {
       /**
        * Scope exist in token request
        */
       if (requestScope) {
-        if (this.validateScope(requestScope)) {
-          if (requestScope === "*") {
-            return subjectScope;
-          } else if (subjectScope === "*") {
-            return requestScope;
-          } else {
-            return UtilsHelper.getMatchedScope(subjectScope, requestScope);
-          }
+        if (requestScope === "*") {
+          return subjectScope;
+        } else if (subjectScope === "*") {
+          return requestScope;
         } else {
-          return undefined;
+          return UtilsHelper.getMatchedScope(subjectScope, requestScope);
         }
       } else {
         /**

@@ -13,6 +13,9 @@ import UtilsHelper from "../helpers/UtilsHelper";
 import path from "path";
 import OauthHelper from "../helpers/OauthHelper";
 import OauthController from "./oauth.controller";
+import IEndUserAuthData from "../interfaces/IEndUserAuthData";
+import ISessionCurrentData from "../interfaces/ISessionCurrentData";
+import AuthorizationHelper from "../helpers/AuthorizationHelper";
 
 class AuthorizationController extends OauthController {
   OAUTH_DIALOG_PATH = "oauth/v2/dialog";
@@ -29,26 +32,9 @@ class AuthorizationController extends OauthController {
       __dirname,
       "..",
       "views",
-      "pages",
-      "auth-login.ejs"
+      "login",
+      "login.ejs"
     );
-
-    // request payload
-    // const payload = JSON.parse(
-    //   Buffer.from(req.query.p, "base64").toString("ascii")
-    // ) as {
-    //   oauthAuthCodeId: string;
-    //   order?: "cancel";
-    //   inputs?: {
-    //     [key: string]: string;
-    //   };
-    //   error?: {
-    //     message: string;
-    //     errors: {
-    //       [key: string]: string;
-    //     };
-    //   };
-    // };
 
     if (req.session) {
       const payload = {
@@ -94,18 +80,12 @@ class AuthorizationController extends OauthController {
           return res.render(authLoginPath, {
             providerName: this.oauthContext.providerName,
             currentYear: new Date().getFullYear(),
-            oauthAuthCodeId: oauthCode._id,
             formAction: `${UrlHelper.getFullUrl(req)}/${
               this.OAUTH_AUTHORIZE_PATH
             }`,
             cancelUrl: `${UrlHelper.getFullUrl(req)}/${
               this.OAUTH_DIALOG_PATH
-            }?p=${Buffer.from(
-              JSON.stringify({
-                oauthAuthCodeId: oauthCode._id,
-                order: "cancel",
-              })
-            ).toString("base64")}`,
+            }?order=cancel`,
             error: payload.error,
             inputs: payload.inputs ?? {
               username: "",
@@ -170,11 +150,6 @@ class AuthorizationController extends OauthController {
         );
       }
 
-      /**
-       * AUTHORIZATION CODE GENERATION
-       * ***********************************
-       */
-
       // create oauth code
       const oauthCode = new OauthAuthCode({
         client: client._id,
@@ -194,7 +169,19 @@ class AuthorizationController extends OauthController {
 
       // set session
       if (req.session) {
-        req.session.oauthAuthCodeId = oauthCode._id;
+        // current user
+        const currentData: ISessionCurrentData = req.session.currentData;
+
+        if (currentData) {
+          return await AuthorizationHelper.run(
+            req,
+            res,
+            oauthCode,
+            currentData
+          );
+        } else {
+          req.session.oauthAuthCodeId = oauthCode._id;
+        }
       } else {
         throw Error("No session defined. Express session required.");
       }
@@ -220,7 +207,6 @@ class AuthorizationController extends OauthController {
   authenticate = async (req: Request, res: Response) => {
     // Form data
     const formData = req.body as {
-      oauthAuthCodeId: string;
       username: string;
       password: string;
     };
@@ -229,7 +215,9 @@ class AuthorizationController extends OauthController {
      * load auth code
      * *****************************************
      */
-    const oauthCode = await OauthAuthCode.findById(formData.oauthAuthCodeId);
+    const oauthCode = await OauthAuthCode.findById(
+      req.session?.oauthAuthCodeId
+    );
 
     if (oauthCode) {
       try {
@@ -238,7 +226,7 @@ class AuthorizationController extends OauthController {
           ["username", "password"],
           formData
         );
-        
+
         if (requiredFields.length !== 0) {
           // set session
           if (req.session) {
@@ -281,93 +269,30 @@ class AuthorizationController extends OauthController {
         }
 
         /**
-         * Check scopes
-         * ****************
+         * Refresh session for next use, Save current user data
+         * **********************************************
          */
-        const mergedScope = oauthCode.client.mergedScope(
-          endUserData.scope,
-          oauthCode.scope
-        );
-        if (!mergedScope) {
-          return OauthHelper.throwError(
-            req,
-            res,
-            {
-              error: "invalid_scope",
-              error_description: "The request scope must be in client scope.",
-            },
-            oauthCode.redirectUri
-          );
-        }
+        req.session?.regenerate(function (err) {
+          if (err) {
+            throw Error("Failed to regenerate session.");
+          } else {
+            const currentData: ISessionCurrentData = {
+              responseType: oauthCode.responseType,
+              authData: endUserData,
+            };
 
-        /**
-         * Generate authorization code
-         * ***********************************
-         */
-        const authorizationCode = suid(100);
+            if (req.session) {
+              req.session.currentData = currentData;
+            } else {
+              throw Error("Unable to access to session");
+            }
+          }
+        });
 
-        /**
-         * Update oauth code
-         */
-        await OauthAuthCode.updateOne(
-          {
-            _id: oauthCode._id,
-          },
-          {
-            userId: endUserData.userId,
-            authorizationCode: authorizationCode,
-          } as Partial<IOauthAuthCode>
-        );
-
-        /**
-         * Authorization code
-         */
-        if (oauthCode.responseType === "code") {
-          const authResponse = {
-            code: authorizationCode,
-            state: oauthCode.state,
-          } as IAuthorizationResponse;
-          return res.redirect(
-            UrlHelper.injectQueryParams(oauthCode.redirectUri, authResponse)
-          );
-        } else if (oauthCode.responseType === "token") {
-          /**
-           * Implicit Grant
-           */
-          // user id
-          const userId = uuidV4();
-
-          const tokens = await oauthCode.client.newAccessToken({
-            grant: "implicit",
-            oauthContext: this.oauthContext,
-            req: req,
-            scope: mergedScope,
-            subject: userId,
-          });
-
-          const authResponse = {
-            access_token: tokens.token,
-            token_type: this.oauthContext.tokenType,
-            expires_in: tokens.accessTokenExpireIn,
-            state: oauthCode.state,
-          } as IToken;
-
-          return res.redirect(
-            UrlHelper.injectQueryParams(oauthCode.redirectUri, authResponse)
-          );
-        } else {
-          /**
-           * Unsupported response type
-           */
-          return OauthHelper.throwError(
-            req,
-            res,
-            {
-              error: "unsupported_response_type",
-            },
-            oauthCode.redirectUri
-          );
-        }
+        return await AuthorizationHelper.run(req, res, oauthCode, {
+          responseType: oauthCode.responseType,
+          authData: endUserData,
+        });
       } catch (e) {
         console.log("e");
         return OauthHelper.throwError(req, res, {

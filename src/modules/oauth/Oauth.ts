@@ -25,15 +25,18 @@ class Oauth {
     Oauth.context = new OauthContext(initContext);
 
     // set session
-    this.app.use(session({
-      secret: Oauth.context.secretKey,
-      resave: false,
-      saveUninitialized: true,
-      cookie: {
-        httpOnly: true,
-        secure: this.app.get('env') === "production",
-      }
-    }))
+    this.app.use(
+      session({
+        secret: Oauth.context.secretKey,
+        resave: false,
+        saveUninitialized: true,
+        cookie: {
+          httpOnly: true,
+          secure: this.app.get("env") === "production",
+          maxAge: 1000 * 60 * 60, // 1 hour
+        },
+      })
+    );
 
     // Add oauth routes
     oauthRoutes(this.app, Oauth.context);
