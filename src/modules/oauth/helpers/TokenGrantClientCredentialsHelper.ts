@@ -4,7 +4,7 @@ import IToken from "../interfaces/IToken";
 import { Request, Response } from "express";
 import HttpStatus from "../../../common/HttpStatus";
 import OauthHelper from "./OauthHelper";
-import { IRequiredOauthContext } from "../OauthContext";
+import OauthContext from "../OauthContext";
 
 class TokenGrantClientCredentialsHelper {
   /**
@@ -21,7 +21,7 @@ class TokenGrantClientCredentialsHelper {
     res: Response,
     data: ITokenRequest,
     client: IOauthClient,
-    oauthContext: IRequiredOauthContext
+    oauthContext: OauthContext
   ) {
     try {
       /**

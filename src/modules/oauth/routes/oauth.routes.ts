@@ -4,9 +4,9 @@ import oauthController from "../controllers/oauth.controller";
 import oauthClientRoutes from "./oauth-client.routes";
 import authorizationRoutes from "./authorization.routes";
 import accessTokenRoutes from "./access-token.routes";
-import { IRequiredOauthContext } from "../OauthContext";
+import OauthContext from "../OauthContext";
 
-export default (app: Application, oauthContext: IRequiredOauthContext) => {
+export default (app: Application, oauthContext: OauthContext) => {
   /**
    * Auth routes
    */

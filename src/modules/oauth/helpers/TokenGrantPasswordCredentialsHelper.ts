@@ -5,7 +5,7 @@ import HttpStatus from "../../../common/HttpStatus";
 import { Request, Response } from "express";
 import UtilsHelper from "./UtilsHelper";
 import OauthHelper from "./OauthHelper";
-import { IRequiredOauthContext } from "../OauthContext";
+import OauthContext from "../OauthContext";
 
 class TokenGrantPasswordCredentialsHelper {
   /**
@@ -22,7 +22,7 @@ class TokenGrantPasswordCredentialsHelper {
     res: Response,
     data: ITokenRequest,
     client: IOauthClient,
-    oauthContext: IRequiredOauthContext
+    oauthContext: OauthContext
   ) {
     try {
       /**
@@ -46,13 +46,12 @@ class TokenGrantPasswordCredentialsHelper {
       /**
        * Password Grant authentification data
        */
-      const passwordGrantData = await oauthContext.authenticationLogic(
+      const endUserAuthData = await oauthContext.authenticationLogic(
         data.username,
-        data.password,
-        data.scope
+        data.password
       );
 
-      if (!passwordGrantData) {
+      if (!endUserAuthData) {
         return OauthHelper.throwError(req, res, {
           error: "invalid_grant",
           error_description: `Given credentials are not valid or do not match any record.`,
@@ -64,7 +63,7 @@ class TokenGrantPasswordCredentialsHelper {
        * ****************
        */
       const mergedScope = client.mergedScope(
-        passwordGrantData.scope,
+        endUserAuthData.scope,
         data.scope
       );
       if (!mergedScope) {
@@ -83,7 +82,7 @@ class TokenGrantPasswordCredentialsHelper {
         oauthContext: oauthContext,
         grant: "password",
         scope: mergedScope,
-        subject: passwordGrantData.userId,
+        subject: endUserAuthData.userId,
       });
 
       return res.status(HttpStatus.Ok).json({
@@ -91,7 +90,7 @@ class TokenGrantPasswordCredentialsHelper {
         token_type: oauthContext.tokenType,
         expires_in: tokens.accessTokenExpireIn,
         refresh_token: tokens.refreshToken,
-        data: passwordGrantData.extraData,
+        data: endUserAuthData.extraData,
       } as IToken);
     } catch (error) {
       console.log(error);

@@ -1,17 +1,14 @@
+import {
+  OauthExpiresInType,
+  IOauthContext,
+} from "./interfaces/IOauthContext";
+import { Request } from "express";
+import UrlHelper from "./helpers/UrlHelper";
+import UtilsHelper from "./helpers/UtilsHelper";
 import IEndUserAuthData from "./interfaces/IEndUserAuthData";
+import { JwtTokenReservedClaimsType } from "./interfaces/IJwt";
 
-export type OauthExpiresInType = {
-  confidential: {
-    internal: number;
-    external: number;
-  };
-  public: {
-    internal: number;
-    external: number;
-  };
-};
-
-export interface IOauthContext {
+export default class OauthContext {
   providerName: string;
   secretKey: string;
   jwtAlgorithm:
@@ -24,51 +21,60 @@ export interface IOauthContext {
     | "ES256"
     | "ES384"
     | "ES512";
-  tokenType?: "Bearer";
-  authenticationLogic: (
-    username: string,
-    password: string,
-    scope?: string
-  ) => Promise<IEndUserAuthData | undefined> | IEndUserAuthData | undefined;
-  authorizationCodeLifeTime?: number;
-  accessTokenExpiresIn?: OauthExpiresInType;
-  refreshTokenExpiresIn?: OauthExpiresInType;
+    authenticationLogic: (
+      username: string,
+      password: string
+    ) => Promise<IEndUserAuthData | undefined> | IEndUserAuthData | undefined;
+    supportedOpenIdStandardClaims: (
+      userId: string
+    ) =>
+      | Promise<JwtTokenReservedClaimsType | undefined>
+      | JwtTokenReservedClaimsType
+      | undefined;
+  rsaKeysFolderPath: string;
+  tokenType: "Bearer";
+  authorizationCodeLifeTime: number;
+  accessTokenExpiresIn: OauthExpiresInType;
+  refreshTokenExpiresIn: OauthExpiresInType;
+  rsaKeys: {
+    publicKey: string;
+    privateKey: string;
+  };
+
+  constructor(init: IOauthContext) {
+    /**
+     * Initialize context
+     */
+    this.accessTokenExpiresIn = init.accessTokenExpiresIn ?? {
+      confidential: {
+        internal: 60 * 60 * 24, // 24h
+        external: 60 * 60 * 12, // 12h
+      },
+      public: {
+        internal: 60 * 60 * 2, // 2h
+        external: 60 * 60, // 1h
+      },
+    };
+    this.authenticationLogic = init.authenticationLogic;
+    this.supportedOpenIdStandardClaims = init.supportedOpenIdStandardClaims;
+    this.authorizationCodeLifeTime = init.authorizationCodeLifeTime ?? 60 * 5;
+    this.jwtAlgorithm = init.jwtAlgorithm ?? "HS512";
+    this.providerName = init.providerName;
+    this.refreshTokenExpiresIn = init.refreshTokenExpiresIn ?? {
+      confidential: {
+        internal: 60 * 60 * 24 * 30 * 12, // 1 year
+        external: 60 * 60 * 24 * 30, // 30 days
+      },
+      public: {
+        internal: 60 * 60 * 24 * 30, // 30 days
+        external: 60 * 60 * 24 * 7, // 1 week
+      },
+    };
+    this.rsaKeysFolderPath = init.rsaKeysFolderPath ?? "rsa-keys";
+    this.secretKey = init.secretKey;
+    this.tokenType = init.tokenType ?? "Bearer";
+    // generate RSA Keys
+    this.rsaKeys = UtilsHelper.generateRsaKeys(this.rsaKeysFolderPath);
+
+  }
 }
-
-export type IRequiredOauthContext = Required<IOauthContext>;
-
-export const defaultOauthContext: Required<Omit<
-  IOauthContext,
-  "providerName" | "secretKey"
->> = {
-  jwtAlgorithm: "HS512",
-  tokenType: "Bearer",
-  authenticationLogic: function (
-    username: string,
-    password: string,
-    scope?: string
-  ) {
-    return undefined;
-  },
-  authorizationCodeLifeTime: 60 * 5,
-  accessTokenExpiresIn: {
-    confidential: {
-      internal: 60 * 60 * 24, // 24h
-      external: 60 * 60 * 12, // 12h
-    },
-    public: {
-      internal: 60 * 60 * 2, // 2h
-      external: 60 * 60, // 1h
-    },
-  },
-  refreshTokenExpiresIn: {
-    confidential: {
-      internal: 60 * 60 * 24 * 30 * 12, // 1 year
-      external: 60 * 60 * 24 * 30, // 30 days
-    },
-    public: {
-      internal: 60 * 60 * 24 * 30, // 30 days
-      external: 60 * 60 * 24 * 7, // 1 week
-    },
-  },
-};

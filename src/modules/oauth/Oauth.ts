@@ -1,10 +1,10 @@
 import { Application } from "express";
 import {
   IOauthContext,
-  defaultOauthContext,
-  IRequiredOauthContext,
-} from "./OauthContext";
+} from "./interfaces/IOauthContext";
 import oauthRoutes from "./routes/oauth.routes";
+import UtilsHelper from "./helpers/UtilsHelper";
+import OauthContext from "./OauthContext";
 
 class Oauth {
   app: Application;
@@ -18,27 +18,8 @@ class Oauth {
    * @param context oauth 2 context
    */
   init(initContext: IOauthContext) {
-    // create context
-    const context: IRequiredOauthContext = {
-      accessTokenExpiresIn:
-        initContext.accessTokenExpiresIn ??
-        defaultOauthContext.accessTokenExpiresIn,
-      authenticationLogic: initContext.authenticationLogic,
-      authorizationCodeLifeTime:
-        initContext.authorizationCodeLifeTime ??
-        defaultOauthContext.authorizationCodeLifeTime,
-      jwtAlgorithm:
-        initContext.jwtAlgorithm ?? defaultOauthContext.jwtAlgorithm,
-      providerName: initContext.providerName,
-      refreshTokenExpiresIn:
-        initContext.refreshTokenExpiresIn ??
-        defaultOauthContext.refreshTokenExpiresIn,
-      secretKey: initContext.secretKey,
-      tokenType: initContext.tokenType ?? defaultOauthContext.tokenType,
-    };
-
     // Add oauth routes
-    oauthRoutes(this.app, context);
+    oauthRoutes(this.app, new OauthContext(initContext));
   }
 }
 

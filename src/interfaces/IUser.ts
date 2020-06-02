@@ -11,7 +11,7 @@ export default interface IUser extends Document {
     emailVerifiedAt?: Date;
     locale: string;
     createdAt: Date;
-    updatedAt?: Date;
+    updatedAt: Date;
     deletedAt?: Date;
     lockedAt?: Date;
     setPassword: (password: string) => void

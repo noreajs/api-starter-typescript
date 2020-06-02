@@ -1,4 +1,4 @@
-# OCNODE api initial project
+# Norea.Js API Starter Project - Typescript
 
 This repository is the initial api project.
 

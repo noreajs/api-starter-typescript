@@ -11,7 +11,7 @@ import moment from "moment";
 import OauthHelper from "../helpers/OauthHelper";
 import OauthRefreshToken, { IOauthRefreshToken } from "./OauthRefreshToken";
 import UtilsHelper from "../helpers/UtilsHelper";
-import { IRequiredOauthContext } from "../OauthContext";
+import OauthContext from "../OauthContext";
 
 export type OauthClientType = "confidential" | "public";
 export type OauthClientProfileType = "web" | "user-agent-based" | "native";
@@ -28,7 +28,7 @@ export type OauthTokenType = {
 
 export type NewAccessTokenParamsType = {
   req: Request;
-  oauthContext: IRequiredOauthContext;
+  oauthContext: OauthContext;
   grant: OauthClientGrantType;
   scope: string;
   subject: string;
@@ -51,8 +51,8 @@ export interface IOauthClient extends Document {
   scope: string;
   revokedAt?: Date;
   validateScope: (scope: String) => boolean;
-  accessTokenExpiresIn: (oauthContext: IRequiredOauthContext) => number;
-  refreshTokenExpiresIn: (oauthContext: IRequiredOauthContext) => number;
+  accessTokenExpiresIn: (oauthContext: OauthContext) => number;
+  refreshTokenExpiresIn: (oauthContext: OauthContext) => number;
   newAccessToken: (params: NewAccessTokenParamsType) => Promise<OauthTokenType>;
   mergedScope: (
     subjectScope: string,
@@ -176,7 +176,7 @@ export default mongooseModel<IOauthClient>({
         return true;
       }
     },
-    accessTokenExpiresIn: function (oauthContext: IRequiredOauthContext): number {
+    accessTokenExpiresIn: function (oauthContext: OauthContext): number {
       switch (this.clientType) {
         case "public":
           if (this.internal) {
@@ -193,7 +193,7 @@ export default mongooseModel<IOauthClient>({
       }
       return oauthContext.accessTokenExpiresIn.public.external;
     },
-    refreshTokenExpiresIn: function (oauthContext: IRequiredOauthContext): number {
+    refreshTokenExpiresIn: function (oauthContext: OauthContext): number {
       switch (this.clientType) {
         case "public":
           if (this.internal) {

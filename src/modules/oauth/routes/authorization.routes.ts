@@ -1,9 +1,9 @@
 import authorizationController from "../controllers/authorization.controller";
 import { NoreaRouter } from "@noreajs/core";
 import authorizationMiddleware from "../middlewares/authorization.middleware";
-import { IRequiredOauthContext } from "../OauthContext";
+import OauthContext from "../OauthContext";
 
-export default (module: NoreaRouter, oauthContext: IRequiredOauthContext) => {
+export default (module: NoreaRouter, oauthContext: OauthContext) => {
   /**
    * Get authorization dialog
    */

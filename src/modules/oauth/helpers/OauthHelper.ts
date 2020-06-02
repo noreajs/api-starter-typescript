@@ -1,10 +1,10 @@
 import { Request, Response } from "express";
-import IJwtTokenPayload from "../interfaces/IJwtTokenPayload";
 import { sign } from "jsonwebtoken";
 import UrlHelper from "./UrlHelper";
 import HttpStatus from "../../../common/HttpStatus";
 import IOauthError from "../interfaces/IOauthError";
-import { IRequiredOauthContext } from "../OauthContext";
+import { IJwtTokenPayload } from "../interfaces/IJwt";
+import OauthContext from "../OauthContext";
 
 class OauthHelper {
   /**
@@ -66,7 +66,7 @@ class OauthHelper {
 
   jwtSign(
     req: Request,
-    oauthContext: IRequiredOauthContext,
+    oauthContext: OauthContext,
     claims: IJwtTokenPayload
   ) {
     return sign(claims, oauthContext.secretKey, {

@@ -9,10 +9,10 @@ import OauthAccessToken, {
 } from "../models/OauthAccessToken";
 import moment from "moment";
 import IToken from "../interfaces/IToken";
-import IJwtTokenPayload from "../interfaces/IJwtTokenPayload";
 import OauthHelper from "./OauthHelper";
 import UtilsHelper from "./UtilsHelper";
-import { IRequiredOauthContext } from "../OauthContext";
+import { IJwtTokenPayload } from "../interfaces/IJwt";
+import OauthContext from "../OauthContext";
 
 class TokenGrantRefreshTokenHelper {
   /**
@@ -29,7 +29,7 @@ class TokenGrantRefreshTokenHelper {
     res: Response,
     data: ITokenRequest,
     client: IOauthClient,
-    oauthContext: IRequiredOauthContext
+    oauthContext: OauthContext
   ) {
     try {
       /**

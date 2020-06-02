@@ -1,4 +1,3 @@
-import { IRequiredOauthContext } from "../OauthContext";
 import { Request, Response } from "express";
 import ITokenRequest from "../interfaces/ITokenRequest";
 import OauthHelper from "../helpers/OauthHelper";
@@ -9,11 +8,12 @@ import TokenGrantAuthorizationCodeHelper from "../helpers/TokenGrantAuthorizatio
 import TokenGrantClientCredentialsHelper from "../helpers/TokenGrantClientCredentialsHelper";
 import TokenGrantPasswordCredentialsHelper from "../helpers/TokenGrantPasswordCredentialsHelper";
 import TokenGrantRefreshTokenHelper from "../helpers/TokenGrantRefreshTokenHelper";
+import OauthContext from "../OauthContext";
 
 class AccessTokenController {
-  oauthContext: IRequiredOauthContext;
+  oauthContext: OauthContext;
 
-  constructor(oauthContext: IRequiredOauthContext) {
+  constructor(oauthContext: OauthContext) {
     this.oauthContext = oauthContext;
   }
 

@@ -1,4 +1,3 @@
-import { IRequiredOauthContext } from "../OauthContext";
 import { Request, Response } from "express";
 import IAuthCodeRequest from "../interfaces/IAuthCodeRequest";
 import { IOauthClient } from "../models/OauthClient";
@@ -13,13 +12,9 @@ import IAuthorizationResponse from "../interfaces/IAuthorizationResponse";
 import UtilsHelper from "../helpers/UtilsHelper";
 import path from "path";
 import OauthHelper from "../helpers/OauthHelper";
+import OauthController from "./OauthController";
 
-class AuthorizationController {
-  oauthContext: IRequiredOauthContext;
-
-  constructor(oauthContext: IRequiredOauthContext) {
-    this.oauthContext = oauthContext;
-  }
+class AuthorizationController extends OauthController{
 
   /**
    * Get authorization dialog
@@ -220,8 +215,7 @@ class AuthorizationController {
       try {
         const endUserData = await this.oauthContext.authenticationLogic(
           formData.username,
-          formData.password,
-          oauthCode.scope
+          formData.password
         );
 
         if (!endUserData) {

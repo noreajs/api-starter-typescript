@@ -1,8 +1,8 @@
 import { NoreaRouter, Route } from "@noreajs/core";
 import oauthClientController from "../controllers/oauth-client.controller";
-import { IRequiredOauthContext } from "../OauthContext";
+import OauthContext from "../OauthContext";
 
-export default (module: NoreaRouter, oauthContext: IRequiredOauthContext) => {
+export default (module: NoreaRouter, oauthContext: OauthContext) => {
   /**
    * Oauth clients routes
    * *********************************

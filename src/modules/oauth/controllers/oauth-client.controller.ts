@@ -5,12 +5,12 @@ import crypto from "crypto";
 import { v4 as uuidV4 } from "uuid";
 import { serializeError } from "serialize-error";
 import { linearizeErrors } from "@noreajs/mongoose";
-import { IRequiredOauthContext } from "../OauthContext";
+import OauthContext from "../OauthContext";
 
 class OauthClientController {
-  oauthContext: IRequiredOauthContext;
+  oauthContext: OauthContext;
 
-  constructor(oauthContext: IRequiredOauthContext) {
+  constructor(oauthContext: OauthContext) {
     this.oauthContext = oauthContext;
   }
 

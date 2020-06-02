@@ -68,11 +68,13 @@ export type JwtTokenAddressClaimType =
   | "postal_code"
   | "country";
 
+export type JwtTokenReservedClaimsType = {
+  [key in JwtTokenStandardClaimType | JwtTokenAddressClaimType]?: any;
+};
+
 export type IJwtTokenPayload = {
   [key in
     | JwtTokenReservedClaimType
     | JwtTokenStandardClaimType
     | JwtTokenAddressClaimType]?: any;
 };
-
-export default IJwtTokenPayload;

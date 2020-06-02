@@ -8,6 +8,7 @@ import { MongoDBContext } from "@noreajs/mongoose";
 import Oauth from "./modules/oauth/Oauth";
 import User from "./models/User";
 import IEndUserAuthData from "./modules/oauth/interfaces/IEndUserAuthData";
+import { JwtTokenReservedClaimsType } from "./modules/oauth/interfaces/IJwt";
 
 /**
  * Norea.Js app initialization
@@ -33,14 +34,13 @@ const app = new NoreaApp(apiRoutes, {
             "66a5ddac054bfe9389e82dea96c85c2084d4b011c3d33e0681a7488756a00ca334a1468015da8",
           authenticationLogic: async function (
             username: string,
-            password: string,
-            scope?: string
+            password: string
           ) {
             const user = await User.findOne({ email: username });
             if (user) {
               if (user.verifyPassword(password)) {
                 const data: IEndUserAuthData = {
-                  scope: "",
+                  scope: "*",
                   userId: user._id,
                   extraData: {
                     user: user,
@@ -50,6 +50,21 @@ const app = new NoreaApp(apiRoutes, {
               } else {
                 return undefined;
               }
+            } else {
+              return undefined;
+            }
+          },
+          supportedOpenIdStandardClaims: async function (userId: string) {
+            const user = await User.findById(userId);
+            if (user) {
+              return {
+                name: user.username,
+                email: user.email,
+                email_verified:
+                  user.emailVerifiedAt !== undefined &&
+                  user.emailVerifiedAt !== null,
+                updated_at: user.updatedAt.getTime(),
+              } as JwtTokenReservedClaimsType;
             } else {
               return undefined;
             }

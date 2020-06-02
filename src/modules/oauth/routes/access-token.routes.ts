@@ -1,8 +1,8 @@
 import { NoreaRouter } from "@noreajs/core";
 import accessTokenController from "../controllers/access-token.controller";
-import { IRequiredOauthContext } from "../OauthContext";
+import OauthContext from "../OauthContext";
 
-export default (module: NoreaRouter, oauthContext: IRequiredOauthContext) => {
+export default (module: NoreaRouter, oauthContext: OauthContext) => {
   /**
    * Get token
    */

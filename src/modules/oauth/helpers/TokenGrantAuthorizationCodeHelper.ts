@@ -8,7 +8,7 @@ import ITokenRequest from "../interfaces/ITokenRequest";
 import { toASCII } from "punycode";
 import { IOauthClient } from "../models/OauthClient";
 import OauthHelper from "./OauthHelper";
-import { IRequiredOauthContext } from "../OauthContext";
+import OauthContext from "../OauthContext";
 
 class TokenGrantAuthorizationCodeHelper {
   /**
@@ -25,7 +25,7 @@ class TokenGrantAuthorizationCodeHelper {
     res: Response,
     data: ITokenRequest,
     client: IOauthClient,
-    oauthContext: IRequiredOauthContext
+    oauthContext: OauthContext
   ) {
     try {
       /**
