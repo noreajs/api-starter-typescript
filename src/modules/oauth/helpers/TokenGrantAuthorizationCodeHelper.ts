@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import crypto from "crypto";
-import HttpStatus from "../../../common/HttpStatus";
+import { HttpStatus } from "@noreajs/common";
 import IToken from "../interfaces/IToken";
 import OauthAuthCode from "../models/OauthAuthCode";
 import moment from "moment";

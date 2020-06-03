@@ -1,17 +1,10 @@
 import { Request, Response } from "express";
 import mongoose from "mongoose";
-import jwt from "jsonwebtoken";
 import User from "../models/User";
 import { serializeError } from "serialize-error";
-import IUserResponse from "../interfaces/IUserResponse";
-import HttpStatus from "../common/HttpStatus";
 import IUser from "../interfaces/IUser";
-import IJWTData from "../interfaces/IJWTData";
-import ExpressRequest from "../core/interfaces/express/ExpressRequest";
 import userProvider from "../providers/user.provider";
-import validator from "validator";
-import { isFilled, isLocaleValid } from "../common/Utils";
-import authNotification from "../notifications/auth.notification";
+import { HttpStatus, isFilled, isLocaleValid } from "@noreajs/common";
 
 class AuthController {
   /**
@@ -20,7 +13,6 @@ class AuthController {
    * @param response response
    */
   async register(request: Request, response: Response) {
-    const req = request as ExpressRequest;
     try {
       let user = new User({
         username: request.body.username,
@@ -50,11 +42,10 @@ class AuthController {
    */
   async updatePassword(req: Request, res: Response) {
     try {
-      const request = req as ExpressRequest;
       // load user
-      const user = request.user;
+      const user: IUser = res.locals.user;
       // set changes
-      user.setPassword(request.body.newPassword);
+      user.setPassword(req.body.newPassword);
       // save changes
       await user.save();
 
@@ -73,24 +64,23 @@ class AuthController {
    */
   async updateLocale(req: Request, res: Response) {
     try {
-      const request = req as ExpressRequest;
       // check locale validity
-      if (!isFilled(request.body.locale)) {
+      if (!isFilled(req.body.locale)) {
         throw {
           status: HttpStatus.BadRequest,
           message: "The locale is required",
         };
-      } else if (!isLocaleValid(request.body.locale)) {
+      } else if (!isLocaleValid(req.body.locale)) {
         throw {
           status: HttpStatus.BadRequest,
-          message: `The format of the given locale (${request.body.locale}) is not correct. Expected example: en-US, fr-FR`,
+          message: `The format of the given locale (${req.body.locale}) is not correct. Expected example: en-US, fr-FR`,
         };
       }
       // load user
-      const user = request.user;
+      const user: IUser = res.locals.user;
       // set changes
       user.set({
-        locale: request.body.locale,
+        locale: req.body.locale,
       } as Partial<IUser>);
       // save changes
       await user.save();
@@ -113,9 +103,8 @@ class AuthController {
     session.startTransaction();
 
     try {
-      const request = req as ExpressRequest;
       // load user
-      const user = request.user;
+      const user:IUser = res.locals.user;
       // last phone number
       const lastEmail = user.email;
       // set changes

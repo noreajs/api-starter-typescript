@@ -2,7 +2,7 @@ import ITokenRequest from "../interfaces/ITokenRequest";
 import { IOauthClient } from "../models/OauthClient";
 import IToken from "../interfaces/IToken";
 import { Request, Response } from "express";
-import HttpStatus from "../../../common/HttpStatus";
+import { HttpStatus } from "@noreajs/common";
 import OauthHelper from "./OauthHelper";
 import OauthContext from "../OauthContext";
 

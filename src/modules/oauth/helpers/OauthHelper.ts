@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { sign } from "jsonwebtoken";
 import UrlHelper from "./UrlHelper";
-import HttpStatus from "../../../common/HttpStatus";
+import { HttpStatus } from "@noreajs/common";
 import IOauthError from "../interfaces/IOauthError";
 import { IJwtTokenPayload } from "../interfaces/IJwt";
 import OauthContext from "../OauthContext";

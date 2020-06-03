@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import HttpStatus from "../../../common/HttpStatus";
+import { HttpStatus } from "@noreajs/common";
 import OauthContext from "../OauthContext";
 
 class OauthController {

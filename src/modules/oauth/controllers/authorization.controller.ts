@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import IAuthCodeRequest from "../interfaces/IAuthCodeRequest";
 import { IOauthClient } from "../models/OauthClient";
-import HttpStatus from "../../../common/HttpStatus";
+import { HttpStatus } from "@noreajs/common";
 import UrlHelper from "../helpers/UrlHelper";
 import OauthAuthCode, { IOauthAuthCode } from "../models/OauthAuthCode";
 import moment from "moment";

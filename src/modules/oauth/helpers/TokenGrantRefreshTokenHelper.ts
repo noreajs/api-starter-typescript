@@ -2,13 +2,10 @@ import ITokenRequest from "../interfaces/ITokenRequest";
 import { Request, Response } from "express";
 import jwt from "jsonwebtoken";
 import { IOauthClient } from "../models/OauthClient";
-import HttpStatus from "../../../common/HttpStatus";
+import { HttpStatus } from "@noreajs/common";
 import OauthRefreshToken, {
   IOauthRefreshToken,
 } from "../models/OauthRefreshToken";
-import OauthAccessToken, {
-  IOauthAccessToken,
-} from "../models/OauthAccessToken";
 import moment from "moment";
 import IToken from "../interfaces/IToken";
 import OauthHelper from "./OauthHelper";

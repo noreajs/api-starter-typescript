@@ -5,8 +5,8 @@ import OauthContext from "./OauthContext";
 import jwt from "jsonwebtoken";
 import session from "express-session";
 import { IJwtTokenPayload } from "./interfaces/IJwt";
-import HttpStatus from "../../common/HttpStatus";
 import OauthAccessToken from "./models/OauthAccessToken";
+import { HttpStatus } from "@noreajs/common";
 
 class Oauth {
   static context?: OauthContext;

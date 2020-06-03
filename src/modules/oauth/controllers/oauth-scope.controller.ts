@@ -1,6 +1,6 @@
 import OauthController from "./oauth.controller";
 import OauthScope, { IOauthScope } from "../models/OauthScope";
-import HttpStatus from "../../../common/HttpStatus";
+import { HttpStatus } from "@noreajs/common";
 import { Request, Response } from "express";
 import { serializeError } from "serialize-error";
 import { linearizeErrors } from "@noreajs/mongoose";
@@ -39,7 +39,7 @@ export default class OauthScopeController extends OauthController {
 
       return res.status(HttpStatus.Created).json(scope);
     } catch (e) {
-      // linearizeErrors(e);
+      linearizeErrors(e);
       return res.status(HttpStatus.InternalServerError).json(serializeError(e));
     }
   };

@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import OauthClient, { IOauthClient } from "../models/OauthClient";
-import HttpStatus from "../../../common/HttpStatus";
+import { HttpStatus } from "@noreajs/common";
 import crypto from "crypto";
 import { v4 as uuidV4 } from "uuid";
 import { serializeError } from "serialize-error";
@@ -52,7 +52,7 @@ class OauthClientController extends OauthController{
 
       return res.status(HttpStatus.Created).json(client);
     } catch (e) {
-      // linearizeErrors(e);
+      linearizeErrors(e);
       return res.status(HttpStatus.InternalServerError).json(serializeError(e));
     }
   };
