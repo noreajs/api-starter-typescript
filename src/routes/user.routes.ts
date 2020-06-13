@@ -1,7 +1,7 @@
 import authMiddleware from "../middlewares/auth.middleware"
 import { Application } from "express"
 import userController from "../controllers/user.controller"
-import Oauth from "../modules/oauth/Oauth"
+import { Oauth } from "@noreajs/oauth-v2-provider-mongoose"
 
 export default (app: Application) => {
 

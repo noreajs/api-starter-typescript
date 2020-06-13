@@ -1,7 +1,8 @@
 import IUser from "../interfaces/IUser";
 import validator from "validator";
 import { encrypt, verify } from "unixcrypt";
-import { mongooseModel, Schema } from "@noreajs/mongoose";
+import { mongooseModel } from "@noreajs/mongoose";
+import { Schema } from "mongoose";
 
 export default mongooseModel<IUser>({
   name: "User",
