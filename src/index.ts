@@ -1,4 +1,4 @@
-import { NoreaApp } from "@noreajs/core";
+import { NoreaBootstrap } from "@noreajs/core";
 import socketIo from "socket.io";
 import apiRoutes from "./routes/api.routes";
 import socketIoServer from "./config/socket.io/socket.io.server";
@@ -13,7 +13,7 @@ import {
 /**
  * Norea.Js app initialization
  */
-const app = new NoreaApp(apiRoutes, {
+const app = new NoreaBootstrap(apiRoutes, {
   beforeStart: (app) => {
     // Get MongoDB Instance
     MongoDBContext.init({

@@ -17,7 +17,7 @@
   "license": "ISC",
   "dependencies": {
     "@noreajs/common": "^1.0.1-0",
-    "@noreajs/core": "^1.1.0-8",
+    "@noreajs/core": "^1.1.2-0",
     "@noreajs/mongoose": "0.0.18",
     "@noreajs/oauth-v2-provider-mongoose": "0.0.1-5",
     "axios": "^0.19.2",
@@ -25,8 +25,8 @@
     "express-jwt": "^5.3.3",
     "express-useragent": "^1.0.13",
     "mailgen": "^2.0.10",
-    "mailgun-js": "^0.22.0",
     "moment": "^2.24.0",
+    "nodemailer": "^6.4.10",
     "serialize-error": "^5.0.0",
     "socket.io": "^2.3.0",
     "underscore": "^1.9.2",
@@ -37,8 +37,8 @@
   "devDependencies": {
     "@types/express-useragent": "^1.0.0",
     "@types/mailgen": "^2.0.3",
-    "@types/mailgun-js": "^0.22.3",
     "@types/node": "^13.1.2",
+    "@types/nodemailer": "^6.4.0",
     "@types/socket.io": "^2.1.4",
     "@types/underscore": "^1.10.0",
     "@types/validator": "^12.0.1",

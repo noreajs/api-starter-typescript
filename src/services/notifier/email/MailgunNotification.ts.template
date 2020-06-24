@@ -1,0 +1,54 @@
+// import Mailgun from "mailgun-js";
+// import { IEmailNotification } from "@noreajs/core";
+// import crypto from "crypto";
+
+// export declare type MailGunMessageType =
+//   | Mailgun.messages.SendData
+//   | Mailgun.messages.BatchData
+//   | Mailgun.messages.SendTemplateData;
+
+// export default class NodemailerNotiication<Emails> extends IEmailNotification<
+//   Emails,
+//   Mailgun.Mailgun,
+//   MailGunMessageType
+// > {
+//   initTransport() {
+//     this.transport = new Mailgun({
+//       apiKey: `${process.env.MAILGUN_API_KEY}`,
+//       domain: `${process.env.MAILGUN_DOMAIN}`,
+//     });
+//   }
+
+//   async sendMail(
+//     mailData: MailGunMessageType,
+//     callback?: ((error: any, info: any) => void) | undefined
+//   ) {
+//     if (this.transport) {
+//       await this.transport
+//         .messages()
+//         .send(
+//           mailData,
+//           (error: Mailgun.Error, body: Mailgun.messages.SendResponse) => {
+//             if (callback) {
+//               callback(error, body);
+//             }
+//           }
+//         );
+//     } else {
+//       throw Error("mailgun transport is not initialized");
+//     }
+//   }
+
+//   /**
+//    * Validate mailgun webhook
+//    * @param webhookResponse webhook response
+//    */
+//   validateWebhook(webhookResponse: any) {
+//     const value = webhookResponse.timestamp + webhookResponse.token;
+//     const hash = crypto
+//       .createHmac("sha256", `${process.env.MAILGUN_API_KEY}`)
+//       .update(value)
+//       .digest("hex");
+//     return hash === webhookResponse.signature;
+//   }
+// }

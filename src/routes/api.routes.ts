@@ -1,35 +1,38 @@
-import { Request, Response, Application } from "express";
+import { Request, Response } from "express";
 import authRoutes from "./auth.routes";
 import userRoutes from "./user.routes";
-import { NoreaAppRoutes } from "@noreajs/core";
+import { AppRoutes } from "@noreajs/core";
+import userNotification from "../notifications/user.notification";
 
-export default new NoreaAppRoutes({
-    routes(app: Application): void {
-        /**
-         * Api home
-         */
-        app.get('/', (request: Request, response: Response) => {
-            response.send({
-                "title": "Ocnode Api initial project",
-                "description": "Initial api based on ocnode framework",
-                "contact": {
-                    "name": "OvniCode Team",
-                    "email": "team@ovnicode.com"
-                }
-            });
-        });
+export default new AppRoutes({
+  routes(app): void {
+    /**
+     * Api home
+     */
+    app.get("/",  async (request: Request, response: Response) => {
+      // hello
+      await userNotification.sms("userDeleted", "Arnold");
+      
+      // response
+      response.send({
+        title: "Ocnode Api initial project",
+        description: "Initial api based on ocnode framework",
+        contact: {
+          name: "OvniCode Team",
+          email: "team@ovnicode.com",
+        },
+      });
+    });
 
-        /**
-         * Auth routes
-         */
-        authRoutes(app)
+    /**
+     * Auth routes
+     */
+    authRoutes(app);
 
-        /**
-         * Users routes
-         */
-        userRoutes(app);
-    },
-    middlewares(app: Application): void {
-
-    }
-})
+    /**
+     * Users routes
+     */
+    userRoutes(app);
+  },
+  middlewares(app): void {},
+});
