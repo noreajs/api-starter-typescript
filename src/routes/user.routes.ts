@@ -1,6 +1,6 @@
 import authMiddleware from "../middlewares/auth.middleware";
 import userController from "../controllers/user.controller";
-import { Oauth } from "@noreajs/oauth-v2-provider-mongoose";
+import { Oauth } from "@noreajs/oauth-v2-provider-me";
 import { NoreaApplication } from "@noreajs/core";
 
 export default (app: NoreaApplication) => {

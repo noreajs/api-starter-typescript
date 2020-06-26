@@ -7,7 +7,7 @@ This repository is the initial api project.
   - Login, Register
   - Users managements
   - [Oauth 2 Server](https://github.com/noreajs/oauth-v2-provider-me) included
-  - Socket.io Server included
+  - [Socket.io](https://github.com/noreajs/realtime#socketio) Server included
 
 # Usage steps
 
