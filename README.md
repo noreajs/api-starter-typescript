@@ -1,12 +1,13 @@
-# OCNODE api initial project
+# Norea.js API Starter Project - Typescript
 
 This repository is the initial api project.
 
 # Features
 
   - Login, Register
-  - Users management 
-  - User token verification
+  - Users managements
+  - [Oauth 2 Server](https://github.com/noreajs/oauth-v2-provider-me) included
+  - Socket.io Server included
 
 # Usage steps
 

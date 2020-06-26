@@ -1,39 +1,117 @@
-import { NoreaApp } from '@noreajs/core';
-import socketIo from "socket.io";
-import bodyParser from 'body-parser';
-import cors from 'cors';
-import apiRoutes from './routes/api.routes';
-import MongodbContext from './config/mongodb/MongodbContext';
-import socketIoServer from "./config/socket.io/socket.io.server";
+import { NoreaBootstrap } from "@noreajs/core";
+import apiRoutes from "./routes/api.routes";
+import { MongoDBContext } from "@noreajs/mongoose";
+import User from "./models/User";
+import {
+  Oauth,
+  IEndUserAuthData,
+  JwtTokenReservedClaimsType,
+} from "@noreajs/oauth-v2-provider-mongoose";
+import { SocketIOServer } from "@noreajs/realtime";
+
+/**
+ * Socket.io server initialization
+ */
+const socketIoServer = new SocketIOServer().namespace({
+  middlewares: [
+    async (socket, fn) => {
+      console.log("Here is a global socket middleware!");
+      fn();
+    },
+  ],
+  onConnect: (io, namespace, socket) => {
+    console.log(`Namespace ${namespace.name}: Socket ${socket.id} connected`);
+    if (socket.user)
+      console.log(`Namespace ${namespace.name}: user ${socket.user} connected`);
+  },
+  onDisconnect: (io, namespace, socket, reason: any) => {
+    console.log(
+      `Namespace ${namespace.name}: Socket ${socket.id} disconnected`,
+      reason
+    );
+  },
+});
 
 /**
  * Norea.Js app initialization
  */
-const app = new NoreaApp(apiRoutes, {
-    forceHttps: false,
-    beforeStart: (app) => {
-        // init cors
-        app.use(cors());
-        // support application/json type post data
-        app.use(bodyParser.json());
-        //support application/x-www-form-urlencoded post data
-        app.use(bodyParser.urlencoded({ extended: false }));
-        // Get MongoDB Instance
-        MongodbContext.init();
-    },
-    afterStart: (app, server, port) => {
-        console.log(`Environement : ${process.env.NODE_ENV || 'local'}`);
-        console.log('Express server listening on port ' + port);
+const app = new NoreaBootstrap(apiRoutes, {
+  beforeStart: (app) => {
+    // inject socket.io server to every request
+    app.use((req, res, next) => {
+      // set socket.io server
+      res.locals.socketServer = socketIoServer.getServer();
+      // continue the request
+      next();
+    });
 
-        // initialize socket io on the server
-        const io: socketIo.Server = socketIo(server);
+    // Get MongoDB Instance
+    MongoDBContext.init({
+      connectionUrl: `${process.env.MONGODB_URI}`,
+      onConnect: (connection) => {
+        // Mongoose oauth 2 provider initialization
+        Oauth.init(app, {
+          providerName: "Oauth 2 Provider",
+          secretKey:
+            "66a5ddac054bfe9389e82dea96c85c2084d4b011c3d33e0681a7488756a00ca334a1468015da8",
+          authenticationLogic: async function (
+            username: string,
+            password: string
+          ) {
+            const user = await User.findOne({ email: username });
+            if (user) {
+              if (user.verifyPassword(password)) {
+                const data: IEndUserAuthData = {
+                  scope: "*",
+                  userId: user._id,
+                  extraData: {
+                    user: user,
+                  },
+                };
+                return data;
+              } else {
+                return undefined;
+              }
+            } else {
+              return undefined;
+            }
+          },
+          supportedOpenIdStandardClaims: async function (userId: string) {
+            const user = await User.findById(userId);
+            if (user) {
+              return {
+                name: user.username,
+                email: user.email,
+                email_verified:
+                  user.emailVerifiedAt !== undefined &&
+                  user.emailVerifiedAt !== null,
+                updated_at: user.updatedAt.getTime(),
+              } as JwtTokenReservedClaimsType;
+            } else {
+              return undefined;
+            }
+          },
+          subLookup: async (sub: string) => {
+            console.log(sub);
+            return await User.findById(sub);
+          },
+          securityMiddlewares: [Oauth.authorize()],
+        });
+      },
+    });
+    // set the view engine to ejs
+    app.set("view engine", "ejs");
+  },
+  afterStart: (app, server, port) => {
+    console.log(`Environement : ${process.env.NODE_ENV || "local"}`);
+    console.log("Express server listening on port " + port);
 
-        // listening socket.io connections
-        socketIoServer.listenConnection(io);
-    }
+    // initialize socket io on the server
+    socketIoServer.attach(server);
+  },
 });
 
 /**
  * Start your app
  */
-app.start(3000)
+app.start();

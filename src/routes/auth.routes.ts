@@ -1,8 +1,9 @@
 import { Application } from "express"
 import authController from "../controllers/auth.controller"
-import authMiddleware from "../middlewares/auth.middleware"
+import { Oauth } from "@noreajs/oauth-v2-provider-mongoose"
+import { NoreaApplication } from "@noreajs/core"
 
-export default (app: Application) => {
+export default (app: NoreaApplication) => {
     /**
      * Register
      */
@@ -11,17 +12,10 @@ export default (app: Application) => {
     ])
 
     /**
-     * login
-     */
-    app.route('/login').post([
-        authController.login
-    ])
-
-    /**
      * Update account locale
      */
     app.route('/account/update/locale').put([
-        authMiddleware.validJwtNeeded,
+        Oauth.authorize(),
         authController.updateLocale
     ])
 
@@ -29,7 +23,7 @@ export default (app: Application) => {
      * Update account
      */
     app.route('/account/update').put([
-        authMiddleware.validJwtNeeded,
+        Oauth.authorize(),
         authController.updateAccount
     ])
 
