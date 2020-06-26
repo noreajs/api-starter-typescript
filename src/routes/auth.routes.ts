@@ -1,6 +1,6 @@
 import { Application } from "express"
 import authController from "../controllers/auth.controller"
-import { Oauth } from "@noreajs/oauth-v2-provider-mongoose"
+import { Oauth } from "@noreajs/oauth-v2-provider-me"
 import { NoreaApplication } from "@noreajs/core"
 
 export default (app: NoreaApplication) => {

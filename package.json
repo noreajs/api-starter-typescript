@@ -19,7 +19,7 @@
     "@noreajs/common": "^1.0.1-0",
     "@noreajs/core": "^1.1.2-0",
     "@noreajs/mongoose": "0.0.18",
-    "@noreajs/oauth-v2-provider-mongoose": "0.0.1-5",
+    "@noreajs/oauth-v2-provider-me": "0.0.4-0",
     "@noreajs/realtime": "0.0.1",
     "axios": "^0.19.2",
     "env-cmd": "^10.0.1",
