@@ -1,14 +1,13 @@
 import mongoose from "mongoose";
 import { isNullOrUndefined } from "util";
-import moment from "moment";
 import { serializeError } from "serialize-error";
 import IUser from "../interfaces/IUser";
 import { HttpStatus, isQueryParamFilled } from "@noreajs/common";
 import { Response, Request } from "express";
 import { v1 as uuidv1 } from "uuid";
 import User from "../models/User";
-import socketIoServer from "../config/socket.io/socket.io.server";
 import userProvider from "../providers/user.provider";
+import { Server } from "socket.io";
 
 /**
  * Manage user
@@ -86,12 +85,17 @@ class UserController {
    * @param res response
    */
   async onlineUsers(req: Request, res: Response) {
-    socketIoServer.io().clients(function (error: any, clients: any[]) {
-      // send the result to the
-      res.status(HttpStatus.Ok).json({
-        count: clients.length,
+    try {
+      const socketServer: Server = res.locals.socketServer;
+      socketServer.clients(function (error: any, clients: any[]) {
+        // send the result to the
+        res.status(HttpStatus.Ok).json({
+          count: clients.length,
+        });
       });
-    });
+    } catch (error) {
+      res.status(HttpStatus.InternalServerError).json(error);
+    }
   }
 
   /**

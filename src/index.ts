@@ -1,7 +1,5 @@
 import { NoreaBootstrap } from "@noreajs/core";
-import socketIo from "socket.io";
 import apiRoutes from "./routes/api.routes";
-import socketIoServer from "./config/socket.io/socket.io.server";
 import { MongoDBContext } from "@noreajs/mongoose";
 import User from "./models/User";
 import {
@@ -9,12 +7,44 @@ import {
   IEndUserAuthData,
   JwtTokenReservedClaimsType,
 } from "@noreajs/oauth-v2-provider-mongoose";
+import { SocketIOServer } from "@noreajs/realtime";
+
+/**
+ * Socket.io server initialization
+ */
+const socketIoServer = new SocketIOServer().namespace({
+  middlewares: [
+    async (socket, fn) => {
+      console.log("Here is a global socket middleware!");
+      fn();
+    },
+  ],
+  onConnect: (io, namespace, socket) => {
+    console.log(`Namespace ${namespace.name}: Socket ${socket.id} connected`);
+    if (socket.user)
+      console.log(`Namespace ${namespace.name}: user ${socket.user} connected`);
+  },
+  onDisconnect: (io, namespace, socket, reason: any) => {
+    console.log(
+      `Namespace ${namespace.name}: Socket ${socket.id} disconnected`,
+      reason
+    );
+  },
+});
 
 /**
  * Norea.Js app initialization
  */
 const app = new NoreaBootstrap(apiRoutes, {
   beforeStart: (app) => {
+    // inject socket.io server to every request
+    app.use((req, res, next) => {
+      // set socket.io server
+      res.locals.socketServer = socketIoServer.getServer();
+      // continue the request
+      next();
+    });
+
     // Get MongoDB Instance
     MongoDBContext.init({
       connectionUrl: `${process.env.MONGODB_URI}`,
@@ -77,10 +107,7 @@ const app = new NoreaBootstrap(apiRoutes, {
     console.log("Express server listening on port " + port);
 
     // initialize socket io on the server
-    const io: socketIo.Server = socketIo(server);
-
-    // listening socket.io connections
-    socketIoServer.listenConnection(io);
+    socketIoServer.attach(server);
   },
 });
 
