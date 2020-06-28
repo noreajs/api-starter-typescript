@@ -2,26 +2,32 @@ import { Request, Response } from "express";
 import authRoutes from "./auth.routes";
 import userRoutes from "./user.routes";
 import { AppRoutes } from "@noreajs/core";
-import userNotification from "../notifications/user.notification";
 
 export default new AppRoutes({
   routes(app): void {
     /**
      * Api home
      */
-    app.get("/",  async (request: Request, response: Response) => {
-      // hello
-      await userNotification.sms("userDeleted", "Arnold");
-      
+    app.get("/", async (request: Request, response: Response) => {
       // response
       response.send({
-        title: "Ocnode Api initial project",
-        description: "Initial api based on ocnode framework",
+        title: "Norea.js api starter project",
+        description: "Oauth v2, user management, session, realtime",
         contact: {
-          name: "OvniCode Team",
-          email: "team@ovnicode.com",
-        },
+          name: "Squirrel",
+          email: "..."
+        }
       });
+    });
+
+    app.post("/csp-report-violation", (req, res) => {
+      if (req.body) {
+        console.log("CSP Violation: ", req.body);
+      } else {
+        console.log("CSP Violation: No data received!");
+      }
+
+      res.status(204).end();
     });
 
     /**
@@ -34,5 +40,5 @@ export default new AppRoutes({
      */
     userRoutes(app);
   },
-  middlewares(app): void {},
+  middlewares(app): void {}
 });
