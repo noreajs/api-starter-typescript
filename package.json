@@ -3,27 +3,26 @@
   "version": "1.0.0",
   "description": "Norea.js starter typescript project",
   "repository": "https://github.com/noreajs/api-starter-typescript.git",
-  "main": "index.js",
+  "main": "dist/index.js",
   "scripts": {
-    "build-ts": "tsc",
-    "start": "node dist/index.js",
-    "start:local": "env-cmd -f ./.env nodemon ./src/index.ts",
+    "build": "tsc",
+    "start": "tsc && node dist/index.js",
+    "start:local": "env-cmd -f ./.env.local nodemon ./src/index.ts",
     "start:development": "env-cmd -f ./.env.development nodemon ./src/index.ts",
     "start:production": "env-cmd -f ./.env.production nodemon ./src/index.ts",
-    "prod": "npm run build && npm run start",
-    "postinstall": "npm run build-ts"
+    "postinstall": "npm run build"
   },
   "author": "OvniCode",
   "license": "ISC",
   "dependencies": {
     "@noreajs/common": "^1.0.1-0",
-    "@noreajs/core": "^1.1.2-0",
+    "@noreajs/core": "^1.1.2-5",
     "@noreajs/mongoose": "0.0.18",
-    "@noreajs/oauth-v2-provider-me": "0.0.4-0",
+    "@noreajs/oauth-v2-provider-me": "0.0.3",
     "@noreajs/realtime": "0.0.1",
     "axios": "^0.19.2",
+    "connect-mongo": "^3.2.0",
     "env-cmd": "^10.0.1",
-    "express-jwt": "^5.3.3",
     "express-useragent": "^1.0.13",
     "mailgen": "^2.0.10",
     "moment": "^2.24.0",
@@ -35,6 +34,7 @@
     "validator": "^12.2.0"
   },
   "devDependencies": {
+    "@types/connect-mongo": "^3.1.3",
     "@types/express-useragent": "^1.0.0",
     "@types/mailgen": "^2.0.3",
     "@types/node": "^13.1.2",
