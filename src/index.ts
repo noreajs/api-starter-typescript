@@ -1,4 +1,3 @@
-import { NoreaBootstrap } from "@noreajs/core";
 import apiRoutes from "./routes/api.routes";
 import { MongoDBContext } from "@noreajs/mongoose";
 import User from "./models/User";
@@ -9,6 +8,11 @@ import {
 } from "@noreajs/oauth-v2-provider-me";
 import { SocketIOServer } from "@noreajs/realtime";
 import IUser from "./interfaces/IUser";
+import session from "express-session";
+import connectMongo from "connect-mongo";
+import { NoreaBootstrap } from "@noreajs/core";
+
+const MongoDBStore = connectMongo(session);
 
 /**
  * Socket.io server initialization
@@ -17,7 +21,7 @@ const socketIoServer = new SocketIOServer().namespace<IUser>({
   middlewares: [
     async (socket, fn) => {
       console.log("Here is a global socket middleware!");
-      
+
       // /**
       //  * Secure socket connection example
       //  */
@@ -53,27 +57,36 @@ const socketIoServer = new SocketIOServer().namespace<IUser>({
 });
 
 /**
- * Norea.Js app initialization
+ * Get MongoDB Instance
  */
-const app = new NoreaBootstrap(apiRoutes, {
-  beforeStart: (app) => {
-    // inject socket.io server to every request
-    app.use((req, res, next) => {
-      // set socket.io server
-      res.locals.socketServer = socketIoServer.getServer();
-      // continue the request
-      next();
-    });
+MongoDBContext.init({
+  connectionUrl: `${process.env.MONGODB_URI}`,
+  onConnect: (connection) => {
+    /**
+     * Norea.Js app initialization
+     */
+    const api = new NoreaBootstrap(apiRoutes, {
+      appName: "Api Starter Typescript",
+      secretKey:
+        "66a5ddac054bfe9389e82dea96c85c2084d4b011c3d33e0681a7488756a00ca334a1468015da8",
+      sessionOptions: {
+        store: new MongoDBStore({
+          mongooseConnection: connection,
+        }),
+      },
+      beforeStart: async (app) => {
+        // inject socket.io server to every request
+        app.use((req, res, next) => {
+          // set socket.io server
+          res.locals.socketServer = socketIoServer.getServer();
+          // continue the request
+          next();
+        });
 
-    // Get MongoDB Instance
-    MongoDBContext.init({
-      connectionUrl: `${process.env.MONGODB_URI}`,
-      onConnect: (connection) => {
         // Mongoose oauth 2 provider initialization
-        Oauth.init(app, {
-          providerName: "Oauth 2 Provider",
-          secretKey:
-            "66a5ddac054bfe9389e82dea96c85c2084d4b011c3d33e0681a7488756a00ca334a1468015da8",
+        await Oauth.init(app, {
+          providerName: app.appName,
+          secretKey: app.secretKey,
           authenticationLogic: async function (
             username: string,
             password: string
@@ -115,23 +128,21 @@ const app = new NoreaBootstrap(apiRoutes, {
             console.log(sub);
             return await User.findById(sub);
           },
-          securityMiddlewares: [Oauth.authorize()],
+          // securityMiddlewares: [Oauth.authorize()],
         });
       },
-    });
-    // set the view engine to ejs
-    app.set("view engine", "ejs");
-  },
-  afterStart: (app, server, port) => {
-    console.log(`Environement : ${process.env.NODE_ENV || "local"}`);
-    console.log("Express server listening on port " + port);
+      afterStart: (app, server, port) => {
+        console.log(`Environement : ${process.env.NODE_ENV || "local"}`);
+        console.log("Express server listening on port " + port);
 
-    // initialize socket io on the server
-    socketIoServer.attach(server);
+        // initialize socket io on the server
+        socketIoServer.attach(server);
+      },
+    });
+
+    /**
+     * Start your app
+     */
+    api.start();
   },
 });
-
-/**
- * Start your app
- */
-app.start();

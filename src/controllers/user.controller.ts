@@ -30,8 +30,8 @@ class UserController {
     await User.paginate(
       { ...queryData },
       {
-        page: parseInt(req.query.page || 1),
-        limit: parseInt(req.query.limit || 20),
+        page: parseInt((req.query.page ?? 1) as any),
+        limit: parseInt((req.query.limit ?? 20) as any),
         sort: { createdAt: "desc" },
       }
     )
