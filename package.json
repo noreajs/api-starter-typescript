@@ -17,6 +17,7 @@
   "dependencies": {
     "@noreajs/common": "^1.0.1-0",
     "@noreajs/core": "^1.1.2-5",
+    "@noreajs/i18n": "0.0.1-0",
     "@noreajs/mongoose": "0.0.18",
     "@noreajs/oauth-v2-provider-me": "0.0.3",
     "@noreajs/realtime": "0.0.1",
