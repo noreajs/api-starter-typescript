@@ -1,7 +1,7 @@
 {
-  "name": "api-starter-typescript",
+  "name": "noreajs-api-starter-typescript",
   "version": "1.0.0",
-  "description": "Norea.js starter typescript project",
+  "description": "Typescript starter project based on Norea.js.",
   "repository": "https://github.com/noreajs/api-starter-typescript.git",
   "main": "dist/index.js",
   "scripts": {
@@ -10,13 +10,13 @@
     "start:local": "env-cmd -f ./.env.local nodemon ./src/index.ts",
     "start:development": "env-cmd -f ./.env.development nodemon ./src/index.ts",
     "start:production": "env-cmd -f ./.env.production nodemon ./src/index.ts",
-    "postinstall": "npm run build"
+    "postinstall": "tsc"
   },
   "author": "OvniCode",
   "license": "ISC",
   "dependencies": {
     "@noreajs/common": "^1.0.1-0",
-    "@noreajs/core": "^1.1.2-5",
+    "@noreajs/core": "^1.1.2-6",
     "@noreajs/i18n": "0.0.1-0",
     "@noreajs/mongoose": "0.0.18",
     "@noreajs/oauth-v2-provider-me": "0.0.3",
@@ -45,5 +45,6 @@
     "nodemon": "^2.0.2",
     "ts-node": "^8.10.2",
     "typescript": "^3.9.3"
-  }
+  },
+  "keywords": []
 }
