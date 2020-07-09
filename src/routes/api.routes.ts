@@ -11,7 +11,7 @@ export default new AppRoutes({
     app.get("/", async (request: Request, response: Response) => {
       // response
       response.send({
-        title: "Norea.js api starter project",
+        title: app.appName,
         description: "Oauth v2, user management, session, realtime",
         contact: {
           name: "Squirrel",

@@ -17,6 +17,7 @@ const MongoDBStore = connectMongo(session);
 
 /**
  * Socket.io server initialization
+ *
  */
 const socketIoServer = new SocketIOServer().namespace<IUser>({
   name: "/socket.io",
@@ -67,7 +68,7 @@ const i18n = new I18n({
 });
 
 /**
- * Norea.Js app initialization
+ * Create Norea.js application
  */
 const api = new NoreaBootstrap(apiRoutes, {
   appName: "Api Starter Typescript",
