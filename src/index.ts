@@ -4,13 +4,14 @@ import User from "./models/User";
 import {
   Oauth,
   IEndUserAuthData,
-  JwtTokenReservedClaimsType
+  JwtTokenReservedClaimsType,
 } from "@noreajs/oauth-v2-provider-me";
 import { SocketIOServer } from "@noreajs/realtime";
 import IUser from "./interfaces/IUser";
 import session from "express-session";
 import connectMongo from "connect-mongo";
 import { NoreaBootstrap } from "@noreajs/core";
+import { I18n } from "@noreajs/i18n";
 
 const MongoDBStore = connectMongo(session);
 
@@ -42,7 +43,7 @@ const socketIoServer = new SocketIOServer().namespace<IUser>({
       // );
 
       fn();
-    }
+    },
   ],
   onConnect: (io, namespace, socket) => {
     console.log(`Namespace ${namespace.name}: Socket ${socket.id} connected`);
@@ -54,7 +55,15 @@ const socketIoServer = new SocketIOServer().namespace<IUser>({
       `Namespace ${namespace.name}: Socket ${socket.id} disconnected`,
       reason
     );
-  }
+  },
+});
+
+/**
+ * I18n settings
+ */
+const i18n = new I18n({
+  locales: ["en-US", "fr-FR"],
+  fallback: "fr-fr",
 });
 
 /**
@@ -68,32 +77,32 @@ const api = new NoreaBootstrap(apiRoutes, {
     contentSecurityPolicy: {
       directives: {
         frameAncestors: ["codesandbox.io"],
-        reportUri: "/csp-report-violation"
-      }
-    }
-  }
+        reportUri: "/csp-report-violation",
+      },
+    },
+  },
 });
 
-api.beforeInit(async app => {
+api.beforeInit(async (app) => {
   console.log("before init");
   /**
    * Get MongoDB Instance
    */
   await MongoDBContext.init({
     connectionUrl: `${process.env.MONGODB_URI}`,
-    onConnect: connection => {
+    onConnect: (connection) => {
       api.updateInitConfig({
         sessionOptions: {
           store: new MongoDBStore({
-            mongooseConnection: connection
-          })
-        }
+            mongooseConnection: connection,
+          }),
+        },
       });
-    }
+    },
   });
 });
 
-api.beforeStart(async app => {
+api.beforeStart(async (app) => {
   console.log("before start");
   // inject socket.io server to every request
   app.use((req, res, next) => {
@@ -103,11 +112,19 @@ api.beforeStart(async app => {
     next();
   });
 
+  // inject i18n
+  app.use((req, res, next) => {
+    // set i18n object
+    res.locals.i18n = i18n;
+    // continue the request
+    next();
+  });
+
   // Mongoose oauth 2 provider initialization
   await Oauth.init(app, {
     providerName: app.appName,
     secretKey: app.secretKey,
-    authenticationLogic: async function(username: string, password: string) {
+    authenticationLogic: async function (username: string, password: string) {
       const user = await User.findOne({ email: username });
       if (user) {
         if (user.verifyPassword(password)) {
@@ -115,8 +132,8 @@ api.beforeStart(async app => {
             scope: "*",
             userId: user._id,
             extraData: {
-              user: user
-            }
+              user: user,
+            },
           };
           return data;
         } else {
@@ -126,7 +143,7 @@ api.beforeStart(async app => {
         return undefined;
       }
     },
-    supportedOpenIdStandardClaims: async function(userId: string) {
+    supportedOpenIdStandardClaims: async function (userId: string) {
       const user = await User.findById(userId);
       if (user) {
         return {
@@ -134,7 +151,7 @@ api.beforeStart(async app => {
           email: user.email,
           email_verified:
             user.emailVerifiedAt !== undefined && user.emailVerifiedAt !== null,
-          updated_at: user.updatedAt.getTime()
+          updated_at: user.updatedAt.getTime(),
         } as JwtTokenReservedClaimsType;
       } else {
         return undefined;
@@ -143,7 +160,7 @@ api.beforeStart(async app => {
     subLookup: async (sub: string) => {
       console.log(sub);
       return await User.findById(sub);
-    }
+    },
     // securityMiddlewares: [Oauth.authorize()],
   });
 });

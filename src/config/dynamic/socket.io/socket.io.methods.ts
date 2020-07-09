@@ -1,7 +1,7 @@
 import socketIo from 'socket.io';
 import jwt from "jsonwebtoken";
-import User from '../../models/User';
-import IJWTData from '../../interfaces/IJWTData';
+import User from '../../../models/User';
+import IJWTData from '../../../interfaces/IJWTData';
 
 
 /**

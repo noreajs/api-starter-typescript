@@ -1,8 +1,8 @@
 import socketIo from 'socket.io';
 import jwt from 'jsonwebtoken';
-import User from '../../models/User';
+import User from '../../../models/User';
 import { serializeError } from 'serialize-error';
-import IJWTData from '../../interfaces/IJWTData';
+import IJWTData from '../../../interfaces/IJWTData';
 
 export default (io: socketIo.Server): socketIo.Namespace => {
     return io.use(async (socket: socketIo.Socket, next) => {
