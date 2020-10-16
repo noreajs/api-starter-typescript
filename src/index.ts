@@ -85,7 +85,6 @@ const api = new NoreaBootstrap(apiRoutes, {
 });
 
 api.beforeInit(async (app) => {
-  console.log("before init");
   /**
    * Get MongoDB Instance
    */
@@ -104,7 +103,6 @@ api.beforeInit(async (app) => {
 });
 
 api.beforeStart(async (app) => {
-  console.log("before start");
   // inject socket.io server to every request
   app.use((req, res, next) => {
     // set socket.io server
@@ -167,7 +165,6 @@ api.beforeStart(async (app) => {
 });
 
 api.afterStart((app, server, port) => {
-  console.log("after init");
   console.log(`Environement : ${process.env.NODE_ENV || "local"}`);
   console.log("Express server listening on port " + port);
 
