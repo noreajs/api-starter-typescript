@@ -6,7 +6,7 @@
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
-    "start": "tsc && node dist/index.js",
+    "start": "node dist/index.js",
     "start:local": "env-cmd -f ./.env.local nodemon ./src/index.ts",
     "start:development": "env-cmd -f ./.env.development nodemon ./src/index.ts",
     "start:production": "env-cmd -f ./.env.production nodemon ./src/index.ts",
@@ -15,11 +15,11 @@
   "author": "OvniCode",
   "license": "ISC",
   "dependencies": {
-    "@noreajs/common": "^1.0.9",
+    "@noreajs/common": "^1.1.2",
     "@noreajs/core": "^1.1.2-6",
     "@noreajs/i18n": "0.0.1-0",
-    "@noreajs/mongoose": "0.0.20",
-    "@noreajs/oauth-v2-provider-me": "0.0.6-0",
+    "@noreajs/mongoose": "^0.1.0",
+    "@noreajs/oauth-v2-provider-me": "0.0.8",
     "@noreajs/realtime": "0.0.1",
     "axios": "^0.19.2",
     "connect-mongo": "^3.2.0",
