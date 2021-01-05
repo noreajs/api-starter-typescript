@@ -21,7 +21,7 @@
     "@noreajs/mongoose": "^0.1.0",
     "@noreajs/oauth-v2-provider-me": "0.0.8",
     "@noreajs/realtime": "0.0.1",
-    "axios": "^0.19.2",
+    "axios": "^0.21.1",
     "connect-mongo": "^3.2.0",
     "env-cmd": "^10.0.1",
     "express-useragent": "^1.0.13",
