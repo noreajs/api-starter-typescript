@@ -87,11 +87,10 @@ class UserController {
   async onlineUsers(req: Request, res: Response) {
     try {
       const socketServer: Server = res.locals.socketServer;
-      socketServer.clients(function (error: any, clients: any[]) {
-        // send the result to the
-        res.status(HttpStatus.Ok).json({
-          count: clients.length,
-        });
+
+      // send the result to the
+      res.status(HttpStatus.Ok).json({
+        count: await socketServer.allSockets(),
       });
     } catch (error) {
       res.status(HttpStatus.InternalServerError).json(error);

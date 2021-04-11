@@ -16,9 +16,9 @@
   "license": "ISC",
   "dependencies": {
     "@noreajs/common": "^1.1.3",
-    "@noreajs/core": "^2.0.2",
+    "@noreajs/core": "^2.0.4",
     "@noreajs/i18n": "0.0.1-0",
-    "@noreajs/mongoose": "^0.1.3",
+    "@noreajs/mongoose": "^0.1.9",
     "@noreajs/oauth-v2-provider-me": "^0.2.3",
     "@noreajs/realtime": "0.0.3-0",
     "axios": "^0.21.1",
