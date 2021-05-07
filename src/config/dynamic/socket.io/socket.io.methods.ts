@@ -12,7 +12,7 @@ import IJWTData from '../../../interfaces/IJWTData';
 export const connectuser = async (io: socketIo.Server, socket: socketIo.Socket) => {
     try {
         // get token from headers
-        let accesstoken = socket.handshake.query.token;
+        let accesstoken = socket.handshake.query.token as string;
 
         // extract credentials
         const jwtCredentials = jwt.verify(accesstoken, `${process.env.JWT_SECRET_KEY}`) as IJWTData;
