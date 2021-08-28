@@ -165,9 +165,6 @@ api.beforeStart(async (app) => {
 });
 
 api.afterStart((app, server, port) => {
-  console.log(`Environement : ${process.env.NODE_ENV || "local"}`);
-  console.log("Express server listening on port " + port);
-
   // initialize socket io on the server
   socketIoServer.attach(server);
 });
