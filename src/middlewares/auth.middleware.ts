@@ -3,7 +3,8 @@ import { serializeError } from "serialize-error";
 import { verify } from "unixcrypt";
 import User from "../models/User";
 import IUser from "../interfaces/IUser";
-import { isFilled, HttpStatus } from "@noreajs/common";
+import { isFilled } from "@noreajs/common";
+import { HttpStatus } from "@noreajs/core";
 
 class AuthMiddleware {
   /**

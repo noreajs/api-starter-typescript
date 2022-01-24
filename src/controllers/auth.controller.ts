@@ -4,7 +4,8 @@ import User from "../models/User";
 import { serializeError } from "serialize-error";
 import IUser from "../interfaces/IUser";
 import userProvider from "../providers/user.provider";
-import { HttpStatus, isFilled, isLocaleValid } from "@noreajs/common";
+import { isFilled, isLocaleValid } from "@noreajs/common";
+import { HttpStatus } from "@noreajs/core";
 
 class AuthController {
   /**
@@ -104,7 +105,7 @@ class AuthController {
 
     try {
       // load user
-      const user:IUser = res.locals.user;
+      const user: IUser = res.locals.user;
       // last phone number
       const lastEmail = user.email;
       // set changes
@@ -175,7 +176,7 @@ class AuthController {
       session.endSession();
 
       return res
-        .status(error.status || HttpStatus.InternalServerError)
+        .status((error as any).status || HttpStatus.InternalServerError)
         .json(serializeError(error));
     }
   }

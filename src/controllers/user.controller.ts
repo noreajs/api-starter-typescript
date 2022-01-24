@@ -1,8 +1,8 @@
 import mongoose from "mongoose";
-import { isNullOrUndefined } from "util";
 import { serializeError } from "serialize-error";
 import IUser from "../interfaces/IUser";
-import { HttpStatus, isQueryParamFilled } from "@noreajs/common";
+import { isQueryParamFilled } from "@noreajs/common";
+import { HttpStatus, Validator } from "@noreajs/core";
 import { Response, Request } from "express";
 import { v1 as uuidv1 } from "uuid";
 import User from "../models/User";
@@ -57,10 +57,16 @@ class UserController {
         /**
          * Check if locked param exist in request body
          */
-        if (isNullOrUndefined(req.body.locked)) {
-          throw {
-            message: "Locked is required!",
-          };
+        const validation = await Validator.validate(req, "body", {
+          locked: {
+            type: "bool",
+            required: true,
+          },
+        });
+
+        // validation fails
+        if (validation.errors.length !== 0) {
+          throw validation;
         }
 
         // update state
@@ -181,7 +187,9 @@ class UserController {
         throw e;
       }
     } catch (error) {
-      return res.status(error.status || 500).json(serializeError(error));
+      return res
+        .status((error as any).status || 500)
+        .json(serializeError(error));
     }
   }
 }
