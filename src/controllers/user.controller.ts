@@ -27,7 +27,7 @@ class UserController {
       queryData["username"] = { $regex: `.*${req.query.username}.*` };
     }
 
-    await User.paginate(
+    await (User as any).paginate(
       { ...queryData },
       {
         page: parseInt((req.query.page ?? 1) as any),

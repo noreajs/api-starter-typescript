@@ -1,4 +1,4 @@
-import { ClientSession } from 'mongoose';
+import { ClientSession, FilterQuery } from 'mongoose';
 import User from '../models/User';
 import IUser from '../interfaces/IUser';
 
@@ -9,7 +9,7 @@ class UserProvider {
      * @param userId user id
      * @param session mongoose client session
      */
-    async loadFullUser(query: Partial<IUser>, session?: ClientSession) {
+    async loadFullUser(query: FilterQuery<IUser>, session?: ClientSession) {
         // populate array
         const populateArray = [
             {
