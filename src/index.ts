@@ -1,19 +1,17 @@
-import apiRoutes from "./routes/api.routes";
-import { MongoDBContext } from "@noreajs/mongoose";
-import User from "./models/User";
-import {
-  Oauth,
-  IEndUserAuthData,
-  JwtTokenReservedClaimsType,
-} from "@noreajs/oauth-v2-provider-me";
-import { SocketIOServer } from "@noreajs/realtime";
-import IUser from "./interfaces/IUser";
-import session from "express-session";
-import connectMongo from "connect-mongo";
 import { NoreaBootstrap } from "@noreajs/core";
 import { I18n } from "@noreajs/i18n";
+import { MongoDBContext } from "@noreajs/mongoose";
+import {
+  IEndUserAuthData,
+  JwtTokenReservedClaimsType, Oauth
+} from "@noreajs/oauth-v2-provider-me";
+import { SocketIOServer } from "@noreajs/realtime";
+import connectMongo from "connect-mongo";
+import IUser from "./interfaces/IUser";
+import User from "./models/User";
+import apiRoutes from "./routes/api.routes";
 
-const MongoDBStore = connectMongo(session);
+// const MongoDBStore = connectMongo(session);
 
 /**
  * Socket.io server initialization
@@ -93,8 +91,8 @@ api.beforeInit(async (app) => {
     onConnect: (connection) => {
       api.updateInitConfig({
         sessionOptions: {
-          store: new MongoDBStore({
-            mongooseConnection: connection,
+          store: connectMongo.create({
+            client: connection.getClient() as any,
           }),
         },
       });
