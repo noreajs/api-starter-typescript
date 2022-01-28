@@ -1,6 +1,6 @@
 {
   "name": "noreajs-api-starter-typescript",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Typescript starter project based on Norea.js.",
   "repository": "https://github.com/noreajs/api-starter-typescript.git",
   "main": "dist/index.js",
