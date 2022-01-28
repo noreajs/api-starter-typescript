@@ -1,0 +1,13 @@
+{
+	"template": "typescript",
+	"dbStrategy": "mongoose",
+	"rootDir": "src",
+	"folders": {
+		"controllers": "controllers",
+		"interfaces": "interfaces",
+		"middlewares": "middlewares",
+		"models": "models",
+		"providers": "providers",
+		"routes": "routes"
+	}
+}
