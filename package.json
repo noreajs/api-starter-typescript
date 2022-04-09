@@ -28,7 +28,7 @@
     "express-session": "^1.17.1",
     "express-useragent": "^1.0.13",
     "mailgen": "^2.0.10",
-    "moment": "^2.24.0",
+    "moment": "^2.29.2",
     "mongodb": "^4.3.1",
     "mongoose": "^6.1.8",
     "nodemailer": "^6.6.3",
