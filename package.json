@@ -34,7 +34,7 @@
     "mailgen": "^2.0.25",
     "moment": "^2.29.3",
     "mongodb": "^4.3.1",
-    "mongoose": "^6.1.8",
+    "mongoose": "^6.4.6",
     "nodemailer": "^6.7.5",
     "oauth-v2-client": "^0.0.9",
     "serialize-error": "^5.0.0",
