@@ -11,8 +11,8 @@ const mailer = new NodemailerNotiication<Notifications>({
     theme: "default",
     product: {
       // Appears in header & footer of e-mails
-      name: "API Starter Typescript",
-      link: "https://mailgen.js/",
+      name: process.env.APP_NAME ?? "Noreajs Starter API",
+      link: process.env.FRONT_APP_URL ?? "https://mailgen.js/",
       // Optional product logo
       // logo: 'https://mailgen.js/img/logo.png'
     },

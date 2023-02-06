@@ -60,5 +60,5 @@ export default (app: NoreaApplication) => {
   /**
    * Delete user account
    */
-  app.route("/users/:id").delete([Oauth.authorize(), userController.delete]);
+  app.route("/users/:id").delete([Oauth.authorize(), authMiddleware.adminOnly, userController.delete]);
 };

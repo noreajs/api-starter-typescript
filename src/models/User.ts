@@ -42,8 +42,9 @@ export default mongooseModel<IUser>({
         default: false,
       },
       socketId: {
-        type: Schema.Types.String,
-        required: false,
+        type: [Schema.Types.String],
+        required: true,
+        default: []
       },
       locale: {
         type: Schema.Types.String,

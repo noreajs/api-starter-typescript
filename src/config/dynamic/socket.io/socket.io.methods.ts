@@ -2,6 +2,7 @@ import socketIo from 'socket.io';
 import jwt from "jsonwebtoken";
 import User from '../../../models/User';
 import IJWTData from '../../../interfaces/IJWTData';
+import IUser from '../../../interfaces/IUser';
 
 
 /**
@@ -18,15 +19,21 @@ export const connectuser = async (io: socketIo.Server, socket: socketIo.Socket) 
         const jwtCredentials = jwt.verify(accesstoken, `${process.env.JWT_SECRET_KEY}`) as IJWTData;
 
         // load user
-        const user = await User.findOne({ email: jwtCredentials.sub });
+        const user = await User.findOne<IUser>({ email: jwtCredentials.sub });
 
         if (user) {
             // set changes
             user.online = true;
-            user.socketId = socket.id;
 
-            // save changes
-            await user.save();
+            // update online data
+            await user.updateOne({
+                $set: {
+                    online: true,
+
+                }, $push: {
+                    socketId: socket.id
+                }
+            })
         }
     } catch (error) {
         // something bad happened
@@ -41,15 +48,21 @@ export const connectuser = async (io: socketIo.Server, socket: socketIo.Socket) 
  */
 export const disconnectUser = async (io: socketIo.Server, socket: socketIo.Socket) => {
     // load related user
-    const user = await User.findOne({ socketId: socket.id });
+    const user = await User.findOne<IUser>({ socketId: socket.id });
 
     // check if user exist
     if (user) {
         // set changes
         user.online = false;
-        user.socketId = undefined;
 
-        // save changes
-        await user.save();
+        const newSocketIds = user.socketId.filter(s => s === socket.id)
+
+        // update online data
+        await user.updateOne({
+            $set: {
+                online: newSocketIds.length !== 0,
+                socketId: newSocketIds
+            }
+        });
     }
 }

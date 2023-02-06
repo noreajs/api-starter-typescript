@@ -5,57 +5,12 @@ import {
   IEndUserAuthData,
   JwtTokenReservedClaimsType, Oauth
 } from "@noreajs/oauth-v2-provider-me";
-import { SocketIOServer } from "@noreajs/realtime";
 import connectMongo from "connect-mongo";
-import IUser from "./interfaces/IUser";
 import User from "./models/User";
 import apiRoutes from "./routes/api.routes";
+import socketIoServer from "./services/socketIoServer";
 
 // const MongoDBStore = connectMongo(session);
-
-/**
- * Socket.io server initialization
- *
- */
-const socketIoServer = new SocketIOServer().namespace<IUser>({
-  name: "/socket.io",
-  middlewares: [
-    async (socket, fn) => {
-      console.log("Here is a global socket middleware!");
-
-      // /**
-      //  * Secure socket connection example
-      //  */
-      // await Oauth.verifyToken(
-      //   socket.handshake.query.token,
-      //   (userId, user) => {
-      //     socket.user = user;
-      //     fn();
-      //   },
-      //   (reason, authError) => {
-      //     if (authError) {
-      //       fn(reason);
-      //     } else {
-      //       fn();
-      //     }
-      //   }
-      // );
-
-      fn();
-    },
-  ],
-  onConnect: (io, namespace, socket) => {
-    console.log(`Namespace ${namespace.name}: Socket ${socket.id} connected`);
-    if (socket.user)
-      console.log(`Namespace ${namespace.name}: user ${socket.user} connected`);
-  },
-  onDisconnect: (io, namespace, socket, reason: any) => {
-    console.log(
-      `Namespace ${namespace.name}: Socket ${socket.id} disconnected`,
-      reason
-    );
-  },
-});
 
 /**
  * I18n settings
@@ -69,9 +24,8 @@ const i18n = new I18n({
  * Create Norea.js application
  */
 const api = new NoreaBootstrap(apiRoutes, {
-  appName: "Api Starter Typescript",
-  secretKey:
-    "66a5ddac054bfe9389e82dea96c85c2084d4b011c3d33e0681a7488756a00ca334a1468015da8",
+  appName: process.env.APP_NAME ?? "Noreajs Starter API",
+  secretKey: process.env.APP_SECRET_KEY,
   helmetConfig: {
     contentSecurityPolicy: {
       directives: {
@@ -155,16 +109,22 @@ api.beforeStart(async (app) => {
       }
     },
     subLookup: async (sub: string) => {
-      console.log(sub);
       return await User.findById(sub);
     },
     // securityMiddlewares: [Oauth.authorize()],
   });
 });
 
-api.afterStart((app, server, port) => {
+api.afterStart(async (app, server, port) => {
   // initialize socket io on the server
   socketIoServer.attach(server);
+
+  // reset all user session data
+  await User.updateMany({}, {
+    $set: {
+      socketId: []
+    }
+  })
 });
 
 /**
