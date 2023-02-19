@@ -6,6 +6,7 @@ import {
   JwtTokenReservedClaimsType, Oauth
 } from "@noreajs/oauth-v2-provider-me";
 import connectMongo from "connect-mongo";
+import { githubOauthStrategy } from "./config/static/oauth/github.oauth-provider";
 import User from "./models/User";
 import apiRoutes from "./routes/api.routes";
 import socketIoServer from "./services/socketIoServer";
@@ -112,6 +113,7 @@ api.beforeStart(async (app) => {
       return await User.findById(sub);
     },
     // securityMiddlewares: [Oauth.authorize()],
+    strategies: [githubOauthStrategy],
   });
 });
 

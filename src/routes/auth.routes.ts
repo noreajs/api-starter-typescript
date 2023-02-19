@@ -1,6 +1,6 @@
-import authController from "../controllers/auth.controller";
-import { Oauth } from "@noreajs/oauth-v2-provider-me";
 import { NoreaApplication } from "@noreajs/core";
+import { Oauth } from "@noreajs/oauth-v2-provider-me";
+import authController from "../controllers/auth.controller";
 
 export default (app: NoreaApplication) => {
   /**

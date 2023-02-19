@@ -29,30 +29,33 @@ export default mongooseModel<IUser>({
       },
       password: {
         type: Schema.Types.String,
-        required: [true, "The secret code is required."],
       },
       admin: {
         type: Schema.Types.Boolean,
-        required: false,
         default: false,
       },
       online: {
         type: Schema.Types.Boolean,
-        required: false,
         default: false,
       },
       socketId: {
         type: [Schema.Types.String],
-        required: true,
         default: []
       },
       locale: {
         type: Schema.Types.String,
-        required: [true, "The locale is required."],
+        default: 'en-EN'
       },
       emailVerifiedAt: {
         type: Schema.Types.Date,
-        required: false,
+      },
+      provider: {
+        type: Schema.Types.String,
+        enum: ["email", "github"],
+        default: "email"
+      },
+      providerUserId: {
+        type: Schema.Types.String,
       },
       deletedAt: {
         type: Date,
