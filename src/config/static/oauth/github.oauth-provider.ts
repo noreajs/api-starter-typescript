@@ -55,6 +55,7 @@ const githubOauthStrategy = new OauthStrategy({
           )
             .get<IGithubUserEmail[]>("/user/emails")
 
+          // get the user primary email
           const primaryEmail = responseEmails.data.find(item => item.primary)
 
           // load existing user
@@ -73,20 +74,43 @@ const githubOauthStrategy = new OauthStrategy({
           } else {
             // the user has a primary email
             if (primaryEmail) {
-              // create the user if he does not exists
-              const user: IUser = await User.create<AnyKeys<IUser>>({
-                username: githubUser.name,
-                email: primaryEmail.email,
-                providerUserId: githubUser.id,
-                provider: "github",
-                emailVerifiedAt: primaryEmail.verified ? new Date() : undefined
-              })
+              // does the email exists in the database
+              const emailUser = await User.findOne<IUser>({ email: primaryEmail.email })
 
-              resolve({
-                scope: "*",
-                userId: user._id,
-                extraData: user,
-              } as IEndUserAuthData);
+              // email is available
+              if (emailUser) {
+                // payload
+                const payload: AnyKeys<IUser> = {
+                  providerUserId: githubUser.id,
+                  provider: "github",
+                  emailVerifiedAt: primaryEmail.verified ? new Date() : undefined
+                }
+                // update provider
+                await emailUser.updateOne({
+                  $set: payload
+                });
+
+                resolve({
+                  scope: "*",
+                  userId: emailUser._id,
+                  extraData: emailUser.set(payload),
+                } as IEndUserAuthData);
+              } else {
+                // create the user if he does not exists
+                const user: IUser = await User.create<AnyKeys<IUser>>({
+                  username: githubUser.name,
+                  email: primaryEmail.email,
+                  providerUserId: githubUser.id,
+                  provider: "github",
+                  emailVerifiedAt: primaryEmail.verified ? new Date() : undefined
+                })
+
+                resolve({
+                  scope: "*",
+                  userId: user._id,
+                  extraData: user,
+                } as IEndUserAuthData);
+              }
             } else {
               resolve(undefined);
             }
