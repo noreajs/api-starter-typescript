@@ -60,7 +60,7 @@ const githubOauthStrategy = new OauthStrategy({
 
           // load existing user
           const user = await User.findOne<IUser>({
-            providerUserId: githubUser.id,
+            providerUserId: `${githubUser.id}`,
             provider: "github"
           });
 
