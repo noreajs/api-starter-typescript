@@ -10,6 +10,8 @@ export default interface IUser extends Document {
     email: string,
     emailVerifiedAt?: Date;
     locale: string;
+    provider: "email" | "github";
+    providerUserId?: string;
     createdAt: Date;
     updatedAt: Date;
     deletedAt?: Date;
